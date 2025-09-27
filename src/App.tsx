@@ -1,16 +1,6 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation 
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be 
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.  
- Use without a license or in violation of any license terms and conditions (including use for 
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more 
- information visit https://appbuilder.agora.io. 
-*********************************************
-*/
-import React, {useState, useLayoutEffect, useEffect} from 'react';
-import {Platform} from 'react-native';
+import React, { useState, useLayoutEffect, useEffect } from 'react';
+import { Platform } from 'react-native';
+import './index.css'
 import KeyboardManager from 'react-native-keyboard-manager';
 import AppWrapper from './AppWrapper';
 import {
@@ -18,11 +8,12 @@ import {
   RoomInfoDefaultValue,
   RoomInfoProvider,
 } from './components/room-info/useRoomInfo';
-import {SetRoomInfoProvider} from './components/room-info/useSetRoomInfo';
-import {ShareLinkProvider} from './components/useShareLink';
+import { SetRoomInfoProvider } from './components/room-info/useSetRoomInfo';
+import { ShareLinkProvider } from './components/useShareLink';
 import AppRoutes from './AppRoutes';
-import {isWebInternal} from './utils/common';
-import LocalEventEmitter, {LocalEventsEnum} from './rtm-events-api/LocalEvents';
+import { isWebInternal } from './utils/common';
+import LocalEventEmitter, { LocalEventsEnum } from './rtm-events-api/LocalEvents';
+import { AuthProvider } from './pages/auth/AuthContext';
 
 // hook can't be used in the outside react function calls. so directly checking the platform.
 if (Platform.OS === 'ios') {
@@ -125,10 +116,12 @@ const App: React.FC = () => {
 
   return (
     <AppWrapper>
-      <SetRoomInfoProvider value={{setRoomInfo}}>
-        <RoomInfoProvider value={{...roomInfo}}>
+      <SetRoomInfoProvider value={{ setRoomInfo }}>
+        <RoomInfoProvider value={{ ...roomInfo }}>
           <ShareLinkProvider>
-            <AppRoutes />
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
           </ShareLinkProvider>
         </RoomInfoProvider>
       </SetRoomInfoProvider>

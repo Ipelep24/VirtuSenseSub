@@ -1,20 +1,9 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation 
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be 
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.  
- Use without a license or in violation of any license terms and conditions (including use for 
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more 
- information visit https://appbuilder.agora.io. 
-*********************************************
-*/
-import React, {useEffect, useState, useContext} from 'react';
-import {View, Text, StyleSheet, ScrollView, Pressable} from 'react-native';
-import {useHistory} from '../components/Router';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useHistory } from '../components/Router';
 import PrimaryButton from '../atoms/PrimaryButton';
 import Toast from '../../react-native-toast-message';
-import {ErrorContext} from '../components/common';
+import { ErrorContext } from '../components/common';
 import ShareLink from '../components/Share';
 import Logo from '../components/common/Logo';
 import {
@@ -25,10 +14,10 @@ import {
   isValidReactComponent,
   AuthErrorCodes,
 } from '../utils/common';
-import {useCustomization} from 'customization-implementation';
-import {useString} from '../utils/useString';
+import { useCustomization } from 'customization-implementation';
+import { useString } from '../utils/useString';
 import useCreateRoom from '../utils/useCreateRoom';
-import {CreateProvider} from './create/useCreate';
+import { CreateProvider } from './create/useCreate';
 import useJoinRoom from '../utils/useJoinRoom';
 import {
   RoomInfoDefaultValue,
@@ -44,8 +33,8 @@ import ThemeConfig from '../theme';
 import Tooltip from '../atoms/Tooltip';
 import ImageIcon from '../atoms/ImageIcon';
 import hexadecimalTransparency from '../utils/hexadecimalTransparency';
-import {randomNameGenerator} from '../utils';
-import {useSetRoomInfo} from '../components/room-info/useSetRoomInfo';
+import { randomNameGenerator } from '../utils';
+import { useSetRoomInfo } from '../components/room-info/useSetRoomInfo';
 import IDPLogoutComponent from '../auth/IDPLogoutComponent';
 import isSDK from '../utils/isSDK';
 import {
@@ -63,11 +52,15 @@ import {
   createRoomSuccessToastHeading,
   createRoomSuccessToastSubHeading,
 } from '../language/default-labels/createScreenLabels';
-import {LogSource, logger} from '../logger/AppBuilderLogger';
+import { LogSource, logger } from '../logger/AppBuilderLogger';
 import SDKEvents from '../utils/SdkEvents';
+import { useAuth } from './auth/AuthContext';
 
 const Create = () => {
-  const {CreateComponent} = useCustomization(data => {
+  const { user } = useAuth()
+  console.log(` Current User: ${user?.displayName}`)
+
+  const { CreateComponent } = useCustomization(data => {
     let components: {
       CreateComponent?: React.ElementType;
     } = {};
@@ -85,8 +78,8 @@ const Create = () => {
   });
 
   const useJoin = useJoinRoom();
-  const {setStore} = useContext(StorageContext);
-  const {setGlobalErrorMessage} = useContext(ErrorContext);
+  const { setStore } = useContext(StorageContext);
+  const { setGlobalErrorMessage } = useContext(ErrorContext);
   const history = useHistory();
   const [loading, setLoading] = useState(false);
   const [roomTitle, onChangeRoomTitle] = useState('');
@@ -95,8 +88,8 @@ const Create = () => {
   const [coHostToggle, setCoHostToggle] = useState(false);
   const [roomCreated, setRoomCreated] = useState(false);
   const createRoomFun = useCreateRoom();
-  const {data} = useRoomInfo();
-  const {setRoomInfo} = useSetRoomInfo();
+  const { data } = useRoomInfo();
+  const { setRoomInfo } = useSetRoomInfo();
 
   const loadingText = useString('loadingText')();
 
@@ -194,7 +187,7 @@ const Create = () => {
       document.title = $config.APP_NAME;
     }
     console.log('[SDKEvents] Join listener registered');
-    return () => {};
+    return () => { };
   }, []);
 
   const showShareScreen = () => {
@@ -304,7 +297,7 @@ const Create = () => {
         ) : (
           <View style={style.root}>
             {!isMobileUA() ? (
-              <IDPLogoutComponent containerStyle={{marginBottom: -100}} />
+              <IDPLogoutComponent containerStyle={{ marginBottom: -100 }} />
             ) : (
               <></>
             )}
@@ -315,7 +308,7 @@ const Create = () => {
                     <Logo />
                     {isMobileUA() ? (
                       <IDPLogoutComponent
-                        containerStyle={{marginTop: 0, marginRight: 0}}
+                        containerStyle={{ marginTop: 0, marginRight: 0 }}
                       />
                     ) : (
                       <></>
@@ -429,7 +422,7 @@ const Create = () => {
                   <PrimaryButton
                     iconName={'video-plus'}
                     disabled={loading || !roomTitle?.trim()}
-                    containerStyle={!isDesktop && {width: '100%'}}
+                    containerStyle={!isDesktop && { width: '100%' }}
                     onPress={() => {
                       if (!$config.BACKEND_ENDPOINT) {
                         showError();

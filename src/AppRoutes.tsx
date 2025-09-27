@@ -1,33 +1,24 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation 
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be 
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.  
- Use without a license or in violation of any license terms and conditions (including use for 
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more 
- information visit https://appbuilder.agora.io. 
-*********************************************
-*/
 import React from 'react';
 import Join from './pages/Join';
 import VideoCall from './pages/VideoCall';
 import Create from './pages/Create';
-import {Route, Switch, Redirect} from './components/Router';
-import AuthRoute from './auth/AuthRoute';
-import {IDPAuth} from './auth/IDPAuth';
-import {Text} from 'react-native';
-import {useCustomization} from 'customization-implementation';
-import {CUSTOM_ROUTES_PREFIX, CustomRoutesInterface} from 'customization-api';
+import Auth from './pages/Auth';
+import { Route, Switch, Redirect } from './components/Router';
+import { IDPAuth } from './auth/IDPAuth';
+import AuthRoute from './auth/AuthRoute'; // ✅ Firebase-aware route guard
+import { Text } from 'react-native';
+import { useCustomization } from 'customization-implementation';
+import { CUSTOM_ROUTES_PREFIX, CustomRoutesInterface } from 'customization-api';
 import PrivateRoute from './components/PrivateRoute';
 import RecordingBotRoute from './components/recording-bot/RecordingBotRoute';
-import {useIsRecordingBot} from './subComponents/recording/useIsRecordingBot';
-import {isValidReactComponent} from './utils/common';
+import { useIsRecordingBot } from './subComponents/recording/useIsRecordingBot';
+import { isValidReactComponent } from './utils/common';
 import ErrorBoundary from './components/ErrorBoundary';
-import {ErrorBoundaryFallback} from './components/ErrorBoundaryFallback';
+import { ErrorBoundaryFallback } from './components/ErrorBoundaryFallback';
+import Dashboard from './pages/Dashboard';
 
 function VideoCallWrapper(props) {
-  const {isRecordingBot} = useIsRecordingBot();
+  const { isRecordingBot } = useIsRecordingBot();
   const ErrorBoundaryFallbackComponent = <ErrorBoundaryFallback />;
   return isRecordingBot ? (
     <RecordingBotRoute history={props.history}>
@@ -47,15 +38,21 @@ function VideoCallWrapper(props) {
 function AppRoutes() {
   const CustomRoutes = useCustomization(data => data?.customRoutes);
   const AppConfig = useCustomization(data => data?.config);
-  const {defaultRootFallback: DefaultRootFallback} = AppConfig || {};
+  const { defaultRootFallback: DefaultRootFallback } = AppConfig || {};
+
+  const renderWithLayout = (Component: React.FC & { layout?: (page: React.ReactNode) => JSX.Element }) => {
+    const Layout = Component.layout || ((page) => page);
+    return Layout(<Component />);
+  };
+
   const RenderCustomRoutes = () => {
     try {
       return (
         CustomRoutes &&
         Array.isArray(CustomRoutes) &&
         CustomRoutes.length &&
-        CustomRoutes?.map((item: CustomRoutesInterface, i: number) => {
-          let RouteComponent = item?.isPrivateRoute ? PrivateRoute : Route;
+        CustomRoutes.map((item: CustomRoutesInterface, i: number) => {
+          const RouteComponent = item?.isPrivateRoute ? PrivateRoute : Route;
           return (
             <RouteComponent
               path={
@@ -65,10 +62,9 @@ function AppRoutes() {
               }
               exact={item.exact}
               key={i}
-              failureRedirectTo={
-                item.failureRedirectTo ? item.failureRedirectTo : '/'
-              }
-              {...item.routeProps}>
+              failureRedirectTo={item.failureRedirectTo || '/'}
+              {...item.routeProps}
+            >
               <item.component {...item.componentProps} />
             </RouteComponent>
           );
@@ -79,33 +75,37 @@ function AppRoutes() {
       return null;
     }
   };
+
   return (
     <Switch>
-      <Route exact path={'/'}>
-        {DefaultRootFallback &&
-        (typeof DefaultRootFallback === 'object' ||
-          typeof DefaultRootFallback === 'function') &&
-        isValidReactComponent(DefaultRootFallback) ? (
-          <DefaultRootFallback />
-        ) : (
-          <Redirect to={'/create'} />
-        )}
+      <Route exact path="/auth">
+        <Auth />
       </Route>
-      <Route exact path={'/authorize/:token?'}>
-        <IDPAuth />
-      </Route>
-      <AuthRoute exact path={'/join'}>
+
+      <AuthRoute exact path="/">
+        {renderWithLayout(Dashboard)}
+      </AuthRoute>
+
+      <AuthRoute exact path="/join">
         <Join />
       </AuthRoute>
-      <AuthRoute exact path={'/create'}>
+
+      <AuthRoute path="/create">
         <Create />
       </AuthRoute>
+
+      <Route exact path="/authorize/:token?">
+        <IDPAuth />
+      </Route>
+
       {RenderCustomRoutes()}
-      <Route exact path={'/:phrase'} component={VideoCallWrapper} />
+
+      <Route exact path="/:phrase" component={VideoCallWrapper} />
       <Route path="*">
         <Text>Page not found</Text>
       </Route>
     </Switch>
   );
 }
+
 export default AppRoutes;

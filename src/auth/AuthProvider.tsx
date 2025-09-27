@@ -162,7 +162,7 @@ const AuthProvider = (props: AuthProviderProps) => {
                   if (returnTo) {
                     history.push(returnTo);
                   } else {
-                    history.push('/');
+                    history.push('/auth');
                   }
                 })
                 .catch(() => {
@@ -179,7 +179,7 @@ const AuthProvider = (props: AuthProviderProps) => {
                 'AUTH',
                 'deep-linking token is empty',
               );
-              history.push('/');
+              history.push('/auth');
             }
           } else if (url?.indexOf('authorize') === -1) {
             logger.error(
@@ -198,7 +198,7 @@ const AuthProvider = (props: AuthProviderProps) => {
             'deep-linking error catch',
             error,
           );
-          history.push('/');
+          history.push('/auth');
         }
       } else {
         //deeplinking handling with authentication enabled
@@ -521,7 +521,7 @@ const AuthProvider = (props: AuthProviderProps) => {
               res,
             );
             setIsAuthenticated(true);
-            history.push('/create');
+            history.push('/auth');
           })
           .catch(error => {
             //don't show token expire/not found toast in the sdk
@@ -542,7 +542,7 @@ const AuthProvider = (props: AuthProviderProps) => {
             }
             setIsAuthenticated(false);
             //sdk there is no fallback page
-            history.push('/create');
+            history.push('/auth');
           });
       }
     }
@@ -691,7 +691,7 @@ const AuthProvider = (props: AuthProviderProps) => {
         //no need to logout because we need token to see the create screen
         //unauth flow no logout
         //sdk with auth flow will use sdk api for logout
-        history.push('/create');
+        history.push('/auth');
       } else {
         logger.log(LogSource.Internals, 'AUTH', 'Request to log out');
         logger.log(

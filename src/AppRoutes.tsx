@@ -3,6 +3,8 @@ import Join from './pages/Join';
 import VideoCall from './pages/VideoCall';
 import Create from './pages/Create';
 import Auth from './pages/Auth';
+import Dashboard from './pages/Dashboard';
+import Records from './pages/Records';
 import { Route, Switch, Redirect } from './components/Router';
 import { IDPAuth } from './auth/IDPAuth';
 import AuthRoute from './auth/AuthRoute'; // ✅ Firebase-aware route guard
@@ -15,7 +17,6 @@ import { useIsRecordingBot } from './subComponents/recording/useIsRecordingBot';
 import { isValidReactComponent } from './utils/common';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ErrorBoundaryFallback } from './components/ErrorBoundaryFallback';
-import Dashboard from './pages/Dashboard';
 
 function VideoCallWrapper(props) {
   const { isRecordingBot } = useIsRecordingBot();
@@ -84,6 +85,10 @@ function AppRoutes() {
 
       <AuthRoute exact path="/">
         {renderWithLayout(Dashboard)}
+      </AuthRoute>
+
+      <AuthRoute exact path="/records">
+        {renderWithLayout(Records)}
       </AuthRoute>
 
       <AuthRoute exact path="/join">

@@ -3,26 +3,26 @@ import { auth } from '../../firebase';
 import type { User } from 'firebase/auth';
 
 interface AuthContextType {
-  user: User | null;
+  googleUser: User | null;
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ googleUser: null, loading: true });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [googleUser, setGoogleUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(u => {
-      setUser(u);
+      setGoogleUser(u);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ googleUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -54,11 +54,8 @@ import {
 } from '../language/default-labels/createScreenLabels';
 import { LogSource, logger } from '../logger/AppBuilderLogger';
 import SDKEvents from '../utils/SdkEvents';
-import { useAuth } from './auth/AuthContext';
 
 const Create = () => {
-  const { user } = useAuth()
-  console.log(` Current User: ${user?.displayName}`)
 
   const { CreateComponent } = useCustomization(data => {
     let components: {

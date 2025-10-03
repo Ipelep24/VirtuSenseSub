@@ -597,35 +597,6 @@ export default function UserActionMenuOptionsOptions(
     /**
      * Local User menu item - change name
      */
-    const changeNameKey = ActionMenuKeys.CHANGE_NAME;
-    const changeNameConfig = userActionMenuItems?.[changeNameKey] ?? {};
-
-    if (
-      !changeNameConfig.hide &&
-      localuid === user.uid &&
-      user.type === 'rtc'
-    ) {
-      items.push({
-        key: changeNameKey,
-        disabled: changeNameConfig.disabled ?? false,
-        order: changeNameConfig.order ?? 6,
-        icon: 'pencil-outlined',
-        onHoverIcon: 'pencil-filled',
-        iconColor: $config.SECONDARY_ACTION_COLOR,
-        textColor: $config.SECONDARY_ACTION_COLOR,
-        title: changeNameLabel,
-        onPress: () => {
-          setActionMenuVisible(false);
-          if (changeNameConfig.onPress) {
-            changeNameConfig.onPress();
-          } else {
-            changeNameConfig.onAction?.();
-            setFocus(prev => ({...prev, editName: true}));
-            setSidePanel(SidePanelType.Settings);
-          }
-        },
-      });
-    }
 
     if (localuid == user.uid && user.type === 'rtc') {
       // items.push({

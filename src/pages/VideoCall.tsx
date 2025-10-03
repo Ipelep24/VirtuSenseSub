@@ -1,5 +1,6 @@
-import React, {useState, useContext, useEffect, useRef} from 'react';
-import {View, StyleSheet, Text} from 'react-native';
+// @ts-nocheck
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import {
   RtcConfigure,
   PropsProvider,
@@ -10,65 +11,65 @@ import {
   CallbacksInterface,
 } from '../../agora-rn-uikit';
 import styles from '../components/styles';
-import {useParams, useHistory} from '../components/Router';
+import { useParams, useHistory } from '../components/Router';
 import RtmConfigure from '../components/RTMConfigure';
 import DeviceConfigure from '../components/DeviceConfigure';
 import Logo from '../subComponents/Logo';
-import {useHasBrandLogo, isMobileUA, isWebInternal} from '../utils/common';
-import {videoView} from '../../theme.json';
-import {LiveStreamContextProvider} from '../components/livestream';
+import { useHasBrandLogo, isMobileUA, isWebInternal } from '../utils/common';
+import theme from '../../theme.json';
+import { LiveStreamContextProvider } from '../components/livestream';
 import ScreenshareConfigure from '../subComponents/screenshare/ScreenshareConfigure';
-import {ErrorContext} from '.././components/common/index';
-import {PreCallProvider} from '../components/precall/usePreCall';
-import {LayoutProvider} from '../utils/useLayout';
+import { ErrorContext } from '.././components/common/index';
+import { PreCallProvider } from '../components/precall/usePreCall';
+import { LayoutProvider } from '../utils/useLayout';
 import Precall from '../components/Precall';
-import {RecordingProvider} from '../subComponents/recording/useRecording';
+import { RecordingProvider } from '../subComponents/recording/useRecording';
 import useJoinRoom from '../utils/useJoinRoom';
 import {
   useRoomInfo,
   RoomInfoDefaultValue,
   WaitingRoomStatus,
 } from '../components/room-info/useRoomInfo';
-import {SidePanelProvider} from '../utils/useSidePanel';
-import {NetworkQualityProvider} from '../components/NetworkQualityContext';
-import {ChatNotificationProvider} from '../components/chat-notification/useChatNotification';
-import {ChatUIControlsProvider} from '../components/chat-ui/useChatUIControls';
-import {ScreenShareProvider} from '../components/contexts/ScreenShareContext';
-import {LiveStreamDataProvider} from '../components/contexts/LiveStreamDataContext';
-import {VideoMeetingDataProvider} from '../components/contexts/VideoMeetingDataContext';
-import {useWakeLock} from '../components/useWakeLock';
+import { SidePanelProvider } from '../utils/useSidePanel';
+import { NetworkQualityProvider } from '../components/NetworkQualityContext';
+import { ChatNotificationProvider } from '../components/chat-notification/useChatNotification';
+import { ChatUIControlsProvider } from '../components/chat-ui/useChatUIControls';
+import { ScreenShareProvider } from '../components/contexts/ScreenShareContext';
+import { LiveStreamDataProvider } from '../components/contexts/LiveStreamDataContext';
+import { VideoMeetingDataProvider } from '../components/contexts/VideoMeetingDataContext';
+import { useWakeLock } from '../components/useWakeLock';
 import SDKEvents from '../utils/SdkEvents';
-import {UserPreferenceProvider} from '../components/useUserPreference';
+import { UserPreferenceProvider } from '../components/useUserPreference';
 import EventsConfigure from '../components/EventsConfigure';
 import PermissionHelper from '../components/precall/PermissionHelper';
-import {FocusProvider} from '../utils/useFocus';
-import {VideoCallProvider} from '../components/useVideoCall';
-import {SdkApiContext} from '../components/SdkApiContext';
+import { FocusProvider } from '../utils/useFocus';
+import { VideoCallProvider } from '../components/useVideoCall';
+import { SdkApiContext } from '../components/SdkApiContext';
 import isSDK from '../utils/isSDK';
-import {CaptionProvider} from '../subComponents/caption/useCaption';
+import { CaptionProvider } from '../subComponents/caption/useCaption';
 import SdkMuteToggleListener from '../components/SdkMuteToggleListener';
 import StorageContext from '../components/StorageContext';
-import {useSetRoomInfo} from '../components/room-info/useSetRoomInfo';
-import {NoiseSupressionProvider} from '../app-state/useNoiseSupression';
-import {VideoQualityContextProvider} from '../app-state/useVideoQuality';
-import {VBProvider} from '../components/virtual-background/useVB';
-import {DisableChatProvider} from '../components/disable-chat/useDisableChat';
-import {WaitingRoomProvider} from '../components/contexts/WaitingRoomContext';
-import {isValidReactComponent} from '../utils/common';
-import {ChatMessagesProvider} from '../components/chat-messages/useChatMessages';
+import { useSetRoomInfo } from '../components/room-info/useSetRoomInfo';
+import { NoiseSupressionProvider } from '../app-state/useNoiseSupression';
+import { VideoQualityContextProvider } from '../app-state/useVideoQuality';
+import { VBProvider } from '../components/virtual-background/useVB';
+import { DisableChatProvider } from '../components/disable-chat/useDisableChat';
+import { WaitingRoomProvider } from '../components/contexts/WaitingRoomContext';
+import { isValidReactComponent } from '../utils/common';
+import { ChatMessagesProvider } from '../components/chat-messages/useChatMessages';
 import VideoCallScreenWrapper from './video-call/VideoCallScreenWrapper';
-import {useIsRecordingBot} from '../subComponents/recording/useIsRecordingBot';
+import { useIsRecordingBot } from '../subComponents/recording/useIsRecordingBot';
 import {
   userBannedText,
   videoRoomStartingCallText,
 } from '../language/default-labels/videoCallScreenLabels';
-import {useString} from '../utils/useString';
-import {LogSource, logger} from '../logger/AppBuilderLogger';
-import {useCustomization} from 'customization-implementation';
-import {BeautyEffectProvider} from '../components/beauty-effect/useBeautyEffects';
-import {UserActionMenuProvider} from '../components/useUserActionMenu';
+import { useString } from '../utils/useString';
+import { LogSource, logger } from '../logger/AppBuilderLogger';
+import { useCustomization } from 'customization-implementation';
+import { BeautyEffectProvider } from '../components/beauty-effect/useBeautyEffects';
+import { UserActionMenuProvider } from '../components/useUserActionMenu';
 import Toast from '../../react-native-toast-message';
-import {AuthErrorCodes} from '../utils/common';
+import { AuthErrorCodes } from '../utils/common';
 
 enum RnEncryptionEnum {
   /**
@@ -120,9 +121,9 @@ const VideoCall: React.FC = () => {
   const joiningLoaderLabel = useString(videoRoomStartingCallText)();
   const bannedUserText = useString(userBannedText)();
 
-  const {setGlobalErrorMessage} = useContext(ErrorContext);
-  const {awake, release} = useWakeLock();
-  const {isRecordingBot} = useIsRecordingBot();
+  const { setGlobalErrorMessage } = useContext(ErrorContext);
+  const { awake, release } = useWakeLock();
+  const { isRecordingBot } = useIsRecordingBot();
   /**
    *  Should we set the callscreen to active ??
    *  a) If Recording bot( i.e prop: recordingBot) is TRUE then it means,
@@ -135,8 +136,8 @@ const VideoCall: React.FC = () => {
   const shouldCallBeSetToActive = isRecordingBot
     ? true
     : $config.PRECALL
-    ? false
-    : true;
+      ? false
+      : true;
   const [callActive, setCallActive] = useState(shouldCallBeSetToActive);
   const [isRecordingActive, setRecordingActive] = useState(false);
   const [queryComplete, setQueryComplete] = useState(false);
@@ -145,9 +146,9 @@ const VideoCall: React.FC = () => {
   const [sttAutoStarted, setSttAutoStarted] = useState(false);
   const [recordingAutoStarted, setRecordingAutoStarted] = useState(false);
 
-  const {phrase} = useParams<{phrase: string}>();
+  const { phrase } = useParams<{ phrase: string }>();
 
-  const {store} = useContext(StorageContext);
+  const { store } = useContext(StorageContext);
   const {
     join: SdkJoinState,
     microphoneDevice: sdkMicrophoneDevice,
@@ -161,7 +162,7 @@ const VideoCall: React.FC = () => {
       data?.lifecycle?.useAfterEndCall && data?.lifecycle?.useAfterEndCall(),
   );
 
-  const {PrefereceWrapper} = useCustomization(data => {
+  const { PrefereceWrapper } = useCustomization(data => {
     let components: {
       PrefereceWrapper: React.ComponentType;
     } = {
@@ -190,7 +191,7 @@ const VideoCall: React.FC = () => {
     screenShareProfile: $config.SCREEN_SHARE_PROFILE,
     dual: true,
     encryption: $config.ENCRYPTION_ENABLED
-      ? {key: null, mode: RnEncryptionEnum.AES128GCM2, screenKey: null}
+      ? { key: null, mode: RnEncryptionEnum.AES128GCM2, screenKey: null }
       : false,
     role: ClientRoleType.ClientRoleBroadcaster,
     geoFencing: $config.GEO_FENCING,
@@ -207,14 +208,15 @@ const VideoCall: React.FC = () => {
   const currentMeetingPhrase = useRef(history.location.pathname);
 
   const useJoin = useJoinRoom();
-  const {setRoomInfo} = useSetRoomInfo();
-  const {isJoinDataFetched, data, isInWaitingRoom, waitingRoomStatus} =
+  const { setRoomInfo } = useSetRoomInfo();
+  const { isJoinDataFetched, data, isInWaitingRoom, waitingRoomStatus } =
     useRoomInfo();
 
   useEffect(() => {
     if (!isJoinDataFetched) {
       return;
     }
+
     logger.log(LogSource.Internals, 'SET_MEETING_DETAILS', 'Room details', {
       user_id: data?.uid || '',
       meeting_title: data?.meetingTitle || '',
@@ -354,13 +356,14 @@ const VideoCall: React.FC = () => {
         uid: data.uid,
         token: data.token,
         rtm: data.rtmToken,
+        meetingTitle: data.meetingTitle || '',
         encryption: $config.ENCRYPTION_ENABLED
           ? {
-              key: data.encryptionSecret,
-              mode: data.encryptionMode,
-              screenKey: data.encryptionSecret,
-              salt: data.encryptionSecretSalt,
-            }
+            key: data.encryptionSecret,
+            mode: data.encryptionMode,
+            screenKey: data.encryptionSecret,
+            salt: data.encryptionSecretSalt,
+          }
           : false,
         screenShareUid: data.screenShareUid,
         screenShareToken: data.screenShareToken,
@@ -369,10 +372,10 @@ const VideoCall: React.FC = () => {
           : ClientRoleType.ClientRoleAudience,
         preventJoin:
           !$config.ENABLE_WAITING_ROOM ||
-          ($config.ENABLE_WAITING_ROOM && data.isHost) ||
-          ($config.ENABLE_WAITING_ROOM &&
-            !data.isHost &&
-            waitingRoomStatus === WaitingRoomStatus.APPROVED)
+            ($config.ENABLE_WAITING_ROOM && data.isHost) ||
+            ($config.ENABLE_WAITING_ROOM &&
+              !data.isHost &&
+              waitingRoomStatus === WaitingRoomStatus.APPROVED)
             ? false
             : true,
       }));
@@ -614,7 +617,7 @@ const style = StyleSheet.create({
     flexDirection: 'column',
     overflow: 'hidden',
   },
-  videoView: videoView,
+  videoView: theme.videoView,
   loader: {
     flex: 1,
     alignSelf: 'center',
@@ -625,7 +628,7 @@ const style = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 30,
   },
-  loaderText: {fontWeight: '500', color: $config.FONT_COLOR},
+  loaderText: { fontWeight: '500', color: $config.FONT_COLOR },
 });
 
 export default VideoCall;

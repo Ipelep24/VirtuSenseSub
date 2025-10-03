@@ -1,14 +1,3 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation 
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be 
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.  
- Use without a license or in violation of any license terms and conditions (including use for 
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more 
- information visit https://appbuilder.agora.io. 
-*********************************************
-*/
 import React from 'react';
 import {
   TouchableOpacityProps,
@@ -20,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import ThemeConfig from '../theme';
-import {primaryButton, primaryButtonText} from '../../theme.json';
+import theme from '../../theme.json';
 import {IconsInterface} from '../atoms/CustomIcon';
 import ImageIcon from '../atoms/ImageIcon';
 
@@ -75,9 +64,9 @@ export default function PrimaryButton(props: PrimaryButtonProps) {
 
 const styles = StyleSheet.create({
   //@ts-ignore
-  primaryButton,
+  primaryButton: theme.primaryButton,
   //@ts-ignore
-  primaryButtonText,
+  primaryButtonText: theme.primaryButtonText,
   container: {
     flexDirection: 'row',
     justifyContent: 'center',

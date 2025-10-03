@@ -1,14 +1,3 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.
- Use without a license or in violation of any license terms and conditions (including use for
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more
- information visit https://appbuilder.agora.io.
-*********************************************
-*/
 // @ts-nocheck
 import AgoraRTC, {
   IAgoraRTCClient,
@@ -32,14 +21,14 @@ import type {
   Subscription,
 } from 'react-native-agora/lib/typescript/src/common/RtcEvents';
 
-import {IRtcEngine} from 'react-native-agora';
-import {VideoProfile} from '../quality';
-import {ChannelProfileType, ClientRoleType} from '../../../agora-rn-uikit';
-import {role, mode, RtcEngineContext} from './Types';
-import {LOG_ENABLED, GEO_FENCING} from '../../../config.json';
-import {Platform} from 'react-native';
+import { IRtcEngine } from 'react-native-agora';
+import { VideoProfile } from '../quality';
+import { ChannelProfileType, ClientRoleType } from '../../../agora-rn-uikit';
+import { role, mode, RtcEngineContext } from './Types';
+import { LOG_ENABLED, GEO_FENCING } from '../../../config.json';
+import { Platform } from 'react-native';
 import isMobileOrTablet from '../../../src/utils/isMobileOrTablet';
-import {LogSource, logger} from '../../../src/logger/AppBuilderLogger';
+import { LogSource, logger } from '../../../src/logger/AppBuilderLogger';
 import {
   type VideoEncoderConfigurationPreset,
   type ScreenEncoderConfigurationPreset,
@@ -255,10 +244,57 @@ export default class RtcEngine {
   private muteLocalAudioMutex = false;
   private speakerDeviceId = '';
   private usersVolumeLevel = [];
+
+  private ferInterval = { current: null };
+  private localRef: { current: HTMLElement | null } = { current: null };
+  private channelName = ''
+
   // Create channel profile and set it here
+  private startFER() {
+    const track = this.localStream.video?.getMediaStreamTrack();
+    if (!track || track.readyState !== 'live') {
+      console.warn('FER skipped: video track not live');
+      return;
+    }
+
+    const imageCapture = new ImageCapture(track);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    this.ferInterval.current = setInterval(async () => {
+      try {
+        const bitmap = await imageCapture.grabFrame();
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        ctx?.drawImage(bitmap, 0, 0);
+
+        const imageData = canvas.toDataURL('image/jpeg', 0.6); // compress to 60%
+        const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
+
+        const response = await fetch('http://localhost:3000/fer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: base64Image }),
+        });
+
+        const result = await response.json();
+        const emotion = result.faces?.[0]?.attributes?.emotion;
+        if (emotion) console.log(`Detected emotion in ${this.channelName}:`, emotion);
+      } catch (err) {
+        console.error('FER Error:', err);
+      }
+    }, 600);
+  }
+
+  private stopFER() {
+    if (this.ferInterval.current) {
+      clearInterval(this.ferInterval.current);
+      this.ferInterval.current = null;
+    }
+  }
 
   initialize(context: RtcEngineContext) {
-    const {appId} = context;
+    const { appId } = context;
     logger.log(LogSource.AgoraSDK, 'Log', 'RTC engine initialized');
     this.appId = appId;
   }
@@ -396,7 +432,7 @@ export default class RtcEngine {
         error,
       );
       let audioError = e;
-      e.status = {audioError};
+      e.status = { audioError };
       throw e;
     }
   }
@@ -604,7 +640,7 @@ export default class RtcEngine {
         );
         videoError = error;
       }
-      e.status = {audioError, videoError};
+      e.status = { audioError, videoError };
       throw e;
       // if (audioError && videoError) throw e;
       // else
@@ -691,9 +727,10 @@ export default class RtcEngine {
     token: string,
     channelName: string,
     optionalUid: number,
-    _optionalInfo: {},
+    _optionalInfo: {}
   ): Promise<void> {
     // TODO create agora client here
+    this.channelName = channelName
     this.client.on('user-joined', user => {
       logger.log(LogSource.AgoraSDK, 'Event', 'RTC [user-joined]', user);
       (this.eventsMap.get('onUserJoined') as callbackType)({}, user.uid);
@@ -800,8 +837,8 @@ export default class RtcEngine {
         const data = this.remoteStreams.get(user.uid);
         try {
           delete data['audio'];
-        } catch (error) {}
-        this.remoteStreams.set(user.uid, {...data});
+        } catch (error) { }
+        this.remoteStreams.set(user.uid, { ...data });
         (this.eventsMap.get('onRemoteAudioStateChanged') as callbackType)(
           {},
           user.uid,
@@ -813,8 +850,8 @@ export default class RtcEngine {
         const data = this.remoteStreams.get(user.uid);
         try {
           delete data['video'];
-        } catch (error) {}
-        this.remoteStreams.set(user.uid, {...data});
+        } catch (error) { }
+        this.remoteStreams.set(user.uid, { ...data });
         (this.eventsMap.get('onRemoteVideoStateChanged') as callbackType)(
           {},
           user.uid,
@@ -872,7 +909,7 @@ export default class RtcEngine {
 
     this.client.on(
       'network-quality',
-      async ({downlinkNetworkQuality, uplinkNetworkQuality}) => {
+      async ({ downlinkNetworkQuality, uplinkNetworkQuality }) => {
         const networkQualityIndicatorCallback = this.eventsMap.get(
           'onNetworkQuality',
         ) as callbackType;
@@ -914,13 +951,13 @@ export default class RtcEngine {
       appId: this.appId,
       channelName,
       token,
-      optionalUid,
+      optionalUid
     });
     await this.client.join(
       this.appId,
       channelName,
       token || null,
-      optionalUid || null,
+      optionalUid || null
     );
     logger.log(
       LogSource.AgoraSDK,
@@ -1004,8 +1041,7 @@ export default class RtcEngine {
         logger.log(
           LogSource.AgoraSDK,
           'Log',
-          `RTC [setMuted] trying to ${
-            muted ? 'mute' : 'unmute'
+          `RTC [setMuted] trying to ${muted ? 'mute' : 'unmute'
           } local audio stream`,
         );
         logger.log(
@@ -1060,8 +1096,7 @@ export default class RtcEngine {
         logger.log(
           LogSource.AgoraSDK,
           'Log',
-          `RTC [setEnabled] trying to ${
-            muted ? 'mute' : 'unmute'
+          `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'
           } local video stream`,
         );
         logger.log(
@@ -1070,6 +1105,11 @@ export default class RtcEngine {
           `RTC [setEnabled] on video track with value - ${!muted}`,
         );
         await this.localStream.video?.setEnabled(!muted);
+        if (!muted) {
+          this.startFER();
+        } else {
+          this.stopFER(); // Add this method to cleanly halt FER
+        }
         logger.log(
           LogSource.AgoraSDK,
           'API',
@@ -1079,6 +1119,7 @@ export default class RtcEngine {
         this.muteLocalVideoMutex = false;
 
         this.isVideoEnabled = !muted;
+
         // Unpublish only after when the user has joined the call
         if (!muted && !this.isVideoPublished && this.isJoined) {
           logger.log(
@@ -1109,24 +1150,21 @@ export default class RtcEngine {
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setEnabled] trying to ${
-          muted ? 'mute' : 'unmute'
+        `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'
         } remote audio stream of user ${uid}`,
       );
       this.remoteStreams.get(uid)?.audio?.setEnabled(!muted);
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC  [setEnabled] ${
-          muted ? 'muted' : 'unmuted'
+        `RTC  [setEnabled] ${muted ? 'muted' : 'unmuted'
         } remote audio stream of user ${uid} done successfully`,
       );
     } catch (e) {
       logger.error(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setEnabled] Error: while ${
-          muted ? 'muting' : 'unmuting'
+        `RTC [setEnabled] Error: while ${muted ? 'muting' : 'unmuting'
         } remote audio stream of user ${uid}`,
         e,
       );
@@ -1138,24 +1176,21 @@ export default class RtcEngine {
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setEnabled] trying to ${
-          muted ? 'mute' : 'unmute'
+        `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'
         } remote video stream of user ${uid}`,
       );
       this.remoteStreams.get(uid)?.video?.setEnabled(!muted);
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setEnabled]  ${
-          muted ? 'muted' : 'unmuted'
+        `RTC [setEnabled]  ${muted ? 'muted' : 'unmuted'
         } remote video stream of user ${uid} successfully`,
       );
     } catch (e) {
       logger.error(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setEnabled] Error while ${
-          muted ? 'muting' : 'unmuting'
+        `RTC [setEnabled] Error while ${muted ? 'muting' : 'unmuting'
         } remote video stream of user ${uid}`,
         e,
       );
@@ -1216,10 +1251,9 @@ export default class RtcEngine {
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setClientRole] for user and screen client with role ${
-          clientRole == ClientRoleType.ClientRoleAudience
-            ? 'audience'
-            : 'broadcaster'
+        `RTC [setClientRole] for user and screen client with role ${clientRole == ClientRoleType.ClientRoleAudience
+          ? 'audience'
+          : 'broadcaster'
         }`,
       );
       if (clientRole == ClientRoleType.ClientRoleAudience) {
@@ -1254,20 +1288,18 @@ export default class RtcEngine {
       logger.log(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setClientRole] for user and screen client with role ${
-          clientRole == ClientRoleType.ClientRoleAudience
-            ? 'audience'
-            : 'broadcaster'
+        `RTC [setClientRole] for user and screen client with role ${clientRole == ClientRoleType.ClientRoleAudience
+          ? 'audience'
+          : 'broadcaster'
         } done successfully`,
       );
     } catch (e) {
       logger.error(
         LogSource.AgoraSDK,
         'API',
-        `RTC [setClientRole] Error while doing setClientRole for user and screen client with role ${
-          clientRole == ClientRoleType.ClientRoleAudience
-            ? 'audience'
-            : 'broadcaster'
+        `RTC [setClientRole] Error while doing setClientRole for user and screen client with role ${clientRole == ClientRoleType.ClientRoleAudience
+          ? 'audience'
+          : 'broadcaster'
         }`,
         e,
       );
@@ -1466,13 +1498,13 @@ export default class RtcEngine {
         this.client.setEncryptionConfig(
           mode,
           config.encryptionKey,
-          config.encryptionMode === 1? null:config.encryptionKdfSalt,
+          config.encryptionMode === 1 ? null : config.encryptionKdfSalt,
           true, // encryptDataStream
         ),
         this.screenClient.setEncryptionConfig(
           mode,
           config.encryptionKey,
-          config.encryptionMode === 1? null:config.encryptionKdfSalt,
+          config.encryptionMode === 1 ? null : config.encryptionKdfSalt,
           true, // encryptDataStream
         ),
       ]);
@@ -1538,6 +1570,7 @@ export default class RtcEngine {
       });
       this.remoteStreams.clear();
     }
+    this.stopFER();
     this.localStream.audio?.close();
     this.localStream.video?.close();
     this.localStream = {};

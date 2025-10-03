@@ -24,10 +24,12 @@ const Auth = () => {
   };
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 18, marginBottom: 10 }}>Sign in with Google</Text>
-      <Button title="Sign In" onPress={handleGoogleLogin} />
-    </View>
+    <div className='flex w-screen h-screen gap-10 flex-col items-center justify-center'>
+      <p className='text-white'>Sign in with Google</p>
+      <button 
+      className='bg-blue-500 text-white w-[95%] p-3' 
+      onClick={handleGoogleLogin}>Sign In</button>
+    </div>
   );
 };
 

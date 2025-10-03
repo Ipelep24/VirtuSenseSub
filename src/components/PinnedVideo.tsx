@@ -1,14 +1,3 @@
-/*
-********************************************
- Copyright © 2021 Agora Lab, Inc., all rights reserved.
- AppBuilder and all associated components, source code, APIs, services, and documentation 
- (the “Materials”) are owned by Agora Lab, Inc. and its licensors. The Materials may not be 
- accessed, used, modified, or distributed for any purpose without a license from Agora Lab, Inc.  
- Use without a license or in violation of any license terms and conditions (including use for 
- any purpose competitive to Agora Lab, Inc.’s business) is strictly prohibited. For more 
- information visit https://appbuilder.agora.io. 
-*********************************************
-*/
 import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
   ScrollView,
@@ -19,7 +8,7 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import {layoutProps} from '../../theme.json';
+import theme from '../../theme.json';
 import {useContent, useLocalUserInfo} from 'customization-api';
 import RenderComponent from '../pages/video-call/RenderComponent';
 import IconButton from '../atoms/IconButton';
@@ -37,7 +26,7 @@ import {
   videoRoomGoToActiveSpeakerText,
 } from '../language/default-labels/videoCallScreenLabels';
 import {useFullScreen} from '..//utils/useFullScreen';
-const {topPinned} = layoutProps;
+const {topPinned} = theme.layoutProps;
 
 const PinnedVideo = ({renderData}) => {
   const {screenUid} = useLocalUserInfo();

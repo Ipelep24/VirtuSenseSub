@@ -183,6 +183,7 @@ const Join = () => {
       <ScrollView contentContainerStyle={style.main}>
         {error ? <Error error={error} /> : <></>}
         <Card>
+          <p className='text-gray-500 cursor-pointer' onClick={() => history.push('/')}>Return to Home</p>
           <View>
             <View style={style.logoContainerStyle}>
               <Logo />

@@ -82,7 +82,7 @@ const Sidebar: React.FC = () => {
       )}
 
       {/* Desktop Sidebar */}
-      <nav className="hidden h-full sm:flex flex-col w-fit p-2 text-white bg-[#1d1d1d] outline outline-[#2d2d2d]">
+      <nav className="hidden h-full sm:flex flex-col p-2 text-white bg-[#1d1d1d] outline outline-[#2d2d2d]">
         <div className='w-full h-1/8'>
           <div className='flex items-center justify-center'>
             <img

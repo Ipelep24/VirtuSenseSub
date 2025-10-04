@@ -28,7 +28,7 @@ const SidebarMenu: React.FC = () => {
                         <li key={label}>
                             <button
                                 onClick={() => history.push(path)}
-                                className={`w-full flex items-center sm:justify-center md:justify-start gap-3 sm:gap-0 md:gap-3 px-3 py-2 rounded-md transition-colors ${isActive
+                                className={`w-full flex items-center sm:justify-center md:justify-start gap-3 sm:gap-0 md:gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${isActive
                                         ? 'bg-[#2d2d2d] outline-1 outline-white font-semibold'
                                         : 'text-gray-400 hover:bg-[#2d2d2d]'
                                     }`}

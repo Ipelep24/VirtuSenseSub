@@ -12,6 +12,20 @@ module.exports = merge(commons, {
   output: {
     path: path.resolve(__dirname, `../Builds/web`),
   },
+  cache: {
+    type: 'filesystem',
+    buildDependencies: {
+      config: [__filename], // ensures cache invalidates on config change
+    },
+  },
+
+  experiments: {
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+    },
+    cacheUnaffected: true, // skips recompiling unchanged modules
+  },
   module: {
     rules: [
       {
@@ -27,6 +41,10 @@ module.exports = merge(commons, {
         include: path.resolve(__dirname, 'src'),
         use: ['postcss-loader'],
       },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource',
+      }
     ],
   },
   devServer: {

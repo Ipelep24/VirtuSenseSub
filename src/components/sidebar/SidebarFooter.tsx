@@ -1,10 +1,23 @@
 import React from 'react'
 import { useAuth } from '../../pages/auth/AuthContext'
 import { RxExit } from "react-icons/rx";
+import { getAuth } from 'firebase/auth';
+import { useHistory } from 'react-router-dom';
 
 const SidebarFooter: React.FC = () => {
     const { googleUser } = useAuth()
+    const history = useHistory()
     const LogoutIcon = RxExit as React.ComponentType<{ className?: string; onClick?: () => void }>;
+
+    const handleLogout = async () => {
+        try {  
+            const auth = getAuth();
+            await auth.signOut()
+            history.push('/auth')
+        } catch(error) {
+            console.error('Sign out error: ', error)
+        }
+    }
 
     return (
         <div className='flex justify-center items-center flex-col h-1/8 w-full'>
@@ -15,13 +28,13 @@ const SidebarFooter: React.FC = () => {
                         alt="Profile"
                         width={100}
                         height={100}
-                        className="border border-[#2d2d2d] h-8 w-8 rounded-full"
+                        className="border border-[#2d2d2d] w-10 h-auto rounded-full"
                     />
-                    <div className="flex flex-col sm:hidden md:flex">
-                        <p className="truncate max-w-[120px] text-white text-sm" title={googleUser?.displayName ?? undefined}>
+                    <div className="flex flex-col sm:hidden md:flex cursor-default">
+                        <p className="truncate w-28 sm:w-50 text-white text-sm" title={googleUser?.displayName ?? undefined}>
                             {googleUser?.displayName}
                         </p>
-                        <p className="truncate max-w-[120px] text-xs text-gray-400" title={googleUser?.email ?? undefined}>
+                        <p className="truncate w-28 sm:w-50 text-xs text-gray-400" title={googleUser?.email ?? undefined}>
                             {googleUser?.email}
                         </p>
                     </div>
@@ -29,6 +42,7 @@ const SidebarFooter: React.FC = () => {
             </div>
             <div 
                 className='py-2 mb-2 flex gap-2 items-center justify-center cursor-pointer hover:text-gray-300 transition-colors'
+                onClick={() => handleLogout()}
             >
                 <LogoutIcon className='w-4 h-4'/>
                 <p className='text-sm block sm:hidden md:block'>Logout</p>

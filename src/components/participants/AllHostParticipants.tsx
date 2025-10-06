@@ -98,7 +98,7 @@ export default function AllHostParticipants(props: any) {
                 //     key={uid}
                 //   />
                 // ) : (
-                <>
+                <React.Fragment key={uid}>
                   <Participant
                     isLocal={false}
                     isAudienceUser={false}
@@ -106,13 +106,12 @@ export default function AllHostParticipants(props: any) {
                     user={defaultContent[uid]}
                     showControls={defaultContent[uid]?.type === 'rtc' && isHost}
                     isHostUser={hostUids.indexOf(uid) !== -1}
-                    key={uid}
                     isMobile={isMobile}
                     handleClose={handleClose}
                     updateActionSheet={updateActionSheet}
                   />
                   {renderScreenShare(defaultContent[uid])}
-                </>
+                </React.Fragment>
               ),
               //),
             )}

@@ -1,15 +1,15 @@
-import {useContext} from 'react';
+import { useContext } from 'react';
 import StorageContext from '../components/StorageContext';
-import {RoomInfoContextInterface} from '../components/room-info/useRoomInfo';
-import {useSetRoomInfo} from '../components/room-info/useSetRoomInfo';
+import { RoomInfoContextInterface } from '../components/room-info/useRoomInfo';
+import { useSetRoomInfo } from '../components/room-info/useSetRoomInfo';
 import useWaitingRoomAPI from '../subComponents/waiting-rooms/useWaitingRoomAPI';
-import {base64ToUint8Array} from '../utils';
-import {LogSource, logger} from '../logger/AppBuilderLogger';
+import { base64ToUint8Array } from '../utils';
+import { LogSource, logger } from '../logger/AppBuilderLogger';
 import getUniqueID from './getUniqueID';
-import {chatErrorNoToken} from '../language/default-labels/videoCallScreenLabels';
-import {useString} from '../utils/useString';
+import { chatErrorNoToken } from '../language/default-labels/videoCallScreenLabels';
+import { useString } from '../utils/useString';
 import isSDK from './isSDK';
-import {AuthErrorCodes} from './common';
+import { AuthErrorCodes } from './common';
 import SDKEvents from './SdkEvents';
 
 const JOIN_CHANNEL_URL = `${$config.BACKEND_ENDPOINT}/v1/channel/join`;
@@ -29,10 +29,10 @@ export interface joinRoomPreference {
 }
 
 export default function useJoinRoom() {
-  const {store} = useContext(StorageContext);
-  const {setRoomInfo} = useSetRoomInfo();
+  const { store } = useContext(StorageContext);
+  const { setRoomInfo } = useSetRoomInfo();
 
-  const {request: requestToJoin} = useWaitingRoomAPI();
+  const { request: requestToJoin } = useWaitingRoomAPI();
   const isWaitingRoomEnabled = $config.ENABLE_WAITING_ROOM;
   const chatErrorNoTokenText = useString(chatErrorNoToken)();
 
@@ -94,8 +94,7 @@ export default function useJoinRoom() {
         logger.error(
           LogSource.NetworkRest,
           `${isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'}`,
-          `API ${
-            isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'
+          `API ${isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'
           } failed.`,
           'Join Channel Failed',
           JSON.stringify(response?.error || {}),
@@ -110,11 +109,11 @@ export default function useJoinRoom() {
       } else {
         if (response) {
           let data = response;
+          console.log('🔍 BACKEND RESPONSE:', JSON.stringify(data, null, 2));
           logger.log(
             LogSource.NetworkRest,
             `${isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'}`,
-            `API to ${
-              isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'
+            `API to ${isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'
             } successful.`,
             {
               responseData: data,
@@ -232,11 +231,11 @@ export default function useJoinRoom() {
               };
             } else {
               const whiteboard: RoomInfoContextInterface['data']['whiteboard'] =
-                {
-                  room_token: data.whiteboard?.room_token,
-                  room_uuid: data.whiteboard?.room_uuid,
-                  error: null,
-                };
+              {
+                room_token: data.whiteboard?.room_token,
+                room_uuid: data.whiteboard?.room_uuid,
+                error: null,
+              };
               if (whiteboard?.room_token && whiteboard?.room_uuid) {
                 roomInfo.whiteboard = whiteboard;
               }
@@ -260,7 +259,7 @@ export default function useJoinRoom() {
               isJoinDataFetched: true,
               data: compiledMeetingInfo,
               roomPreference: validPreference
-                ? {...preference}
+                ? { ...preference }
                 : prevState.roomPreference,
             };
           });

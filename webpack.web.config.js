@@ -42,7 +42,7 @@ module.exports = merge(commons, {
         use: ['postcss-loader'],
       },
       {
-        test: /\.(png|jpe?g|gif|svg)$/i,
+        test: /\.(jpe?g|svg)$/i,
         type: 'asset/resource',
       }
     ],

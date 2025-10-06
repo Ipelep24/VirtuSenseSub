@@ -27,13 +27,13 @@ const Sidebar: React.FC = () => {
       {/* Mobile Navigation Bar */}
       <nav className='relative flex justify-between items-center h-1/8 sm:hidden p-2 px-4 bg-[#1d1d1d] text-white outline outline-[#2d2d2d]'>
         <div className='flex'>
-          <img
+          {/* <img
             src="/logo.png"
             alt="Logo"
             width={100}
             height={100}
             className='w-10 h-auto'
-          />
+          /> */}
           <h1 className='text-xl font-semibold gap-2 p-2'>VirtuSense</h1>
         </div>
         <MenuIcon 
@@ -64,13 +64,13 @@ const Sidebar: React.FC = () => {
             {/* Logo */}
             <div className='w-full mb-8'>
               <div className='flex items-center gap-3'>
-                <img
+                {/* <img
                   src="/logo.png"
                   alt="Logo"
                   width={40}
                   height={40}
                   className='w-10 h-10'
-                />
+                /> */}
                 <h1 className='text-xl font-semibold'>VirtuSense</h1>
               </div>
             </div>
@@ -85,13 +85,13 @@ const Sidebar: React.FC = () => {
       <nav className="hidden h-full sm:flex flex-col p-2 text-white bg-[#1d1d1d] outline outline-[#2d2d2d]">
         <div className='w-full h-1/8'>
           <div className='flex items-center justify-center'>
-            <img
+            {/* <img
               src="/logo.png"
               alt="Logo"
               width={100}
               height={100}
               className='w-10 h-auto'
-            />
+            /> */}
             <h1 className='hidden md:block text-xl font-semibold gap-2 p-2'>VirtuSense</h1>
           </div>
         </div>

@@ -41,7 +41,7 @@ const SidebarFooter: React.FC = () => {
                 </div>
             </div>
             <div 
-                className='py-2 mb-2 flex gap-2 items-center justify-center cursor-pointer hover:text-gray-300 transition-colors'
+                className='py-2 mb-2 flex gap-2 items-center justify-center cursor-pointer text-gray-500 opacity-60 hover:text-gray-300 transition-colors'
                 onClick={() => handleLogout()}
             >
                 <LogoutIcon className='w-4 h-4'/>

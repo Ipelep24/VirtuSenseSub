@@ -70,6 +70,7 @@ import { BeautyEffectProvider } from '../components/beauty-effect/useBeautyEffec
 import { UserActionMenuProvider } from '../components/useUserActionMenu';
 import Toast from '../../react-native-toast-message';
 import { AuthErrorCodes } from '../utils/common';
+import useGetName from '../utils/useGetName';
 
 enum RnEncryptionEnum {
   /**
@@ -120,6 +121,19 @@ const VideoCall: React.FC = () => {
   const hasBrandLogo = useHasBrandLogo();
   const joiningLoaderLabel = useString(videoRoomStartingCallText)();
   const bannedUserText = useString(userBannedText)();
+
+  const username = useGetName();
+  console.log('Current username from useGetName:', username);
+
+  useEffect(() => {
+    console.log('🟢 VideoCall: Username changed to:', username);
+    if (username) {
+      setRtcProps(prev => ({
+        ...prev,
+        username: username,
+      }));
+    }
+  }, [username]);
 
   const { setGlobalErrorMessage } = useContext(ErrorContext);
   const { awake, release } = useWakeLock();
@@ -221,10 +235,10 @@ const VideoCall: React.FC = () => {
       user_id: data?.uid || '',
       meeting_title: data?.meetingTitle || '',
       channel_id: data?.channel,
-      host_id: data?.roomId?.host || '',
-      attendee_id: data?.roomId?.attendee || '',
+      isHost: data?.isHost,
+      username: username || '',
     });
-  }, [isJoinDataFetched, data, phrase]);
+  }, [isJoinDataFetched, data, phrase, username]);
 
   React.useEffect(() => {
     return () => {
@@ -357,6 +371,8 @@ const VideoCall: React.FC = () => {
         token: data.token,
         rtm: data.rtmToken,
         meetingTitle: data.meetingTitle || '',
+        isHost: data.isHost,
+        username: username,
         encryption: $config.ENCRYPTION_ENABLED
           ? {
             key: data.encryptionSecret,
@@ -393,7 +409,7 @@ const VideoCall: React.FC = () => {
       // }
       setQueryComplete(true);
     }
-  }, [isJoinDataFetched, data, queryComplete]);
+  }, [isJoinDataFetched, data, queryComplete, username]);
 
   const callbacks: CallbacksInterface = {
     // RtcLeft: () => {},

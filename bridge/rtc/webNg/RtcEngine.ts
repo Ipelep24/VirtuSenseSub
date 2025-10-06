@@ -249,6 +249,22 @@ export default class RtcEngine {
   private localRef: { current: HTMLElement | null } = { current: null };
   private channelName = ''
 
+  private meetingTitle = '';
+  private isHost = 'false';
+  private username = ''
+
+  // Add a method to set meeting metadata
+  setMeetingMetadata(metadata: {
+    meetingTitle?: string;
+    isHost?: boolean;
+    username?: string;
+  }) {
+    console.log('🔧 RTCENGINE: setMeetingMetadata called with:', metadata);
+    if (metadata.meetingTitle !== undefined) this.meetingTitle = metadata.meetingTitle;
+    if (metadata.isHost !== undefined) this.isHost = metadata.isHost;
+    if (metadata.username !== undefined) this.username = metadata.username
+  }
+
   // Create channel profile and set it here
   private startFER() {
     const track = this.localStream.video?.getMediaStreamTrack();
@@ -279,7 +295,15 @@ export default class RtcEngine {
 
         const result = await response.json();
         const emotion = result.faces?.[0]?.attributes?.emotion;
-        if (emotion) console.log(`Detected emotion in ${this.channelName}:`, emotion);
+        if (emotion) {
+          console.log(
+            `Detected emotion - Channel: ${this.channelName} | ` +
+            `Meeting: ${this.meetingTitle || 'N/A'} | ` +
+            `Is host: ${this.isHost} |` +
+            `Username: ${this.username} |` +
+            `Emotion:`, emotion
+          );
+        }
       } catch (err) {
         console.error('FER Error:', err);
       }
@@ -727,10 +751,28 @@ export default class RtcEngine {
     token: string,
     channelName: string,
     optionalUid: number,
-    _optionalInfo: {}
+    _optionalInfo: {
+      meetingTitle?: string;
+      isHost?: boolean;
+      username?: string;
+    }
   ): Promise<void> {
-    // TODO create agora client here
-    this.channelName = channelName
+    this.channelName = channelName;
+
+    console.log('joinChannel called with _optionalInfo:', _optionalInfo);
+
+    if (_optionalInfo) {
+      this.setMeetingMetadata({
+        meetingTitle: _optionalInfo.meetingTitle,
+        isHost: _optionalInfo.isHost,
+        username: _optionalInfo.username,
+      });
+      console.log('Metadata set:', {
+        meetingTitle: this.meetingTitle,
+        isHost: this.isHost,
+        username: this.username,
+      });
+    }
     this.client.on('user-joined', user => {
       logger.log(LogSource.AgoraSDK, 'Event', 'RTC [user-joined]', user);
       (this.eventsMap.get('onUserJoined') as callbackType)({}, user.uid);

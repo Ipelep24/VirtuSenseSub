@@ -33,9 +33,10 @@ const PreCallTextInput = (props?: PreCallTextInputProps) => {
 
   useEffect(() => {
     if (googleUser?.displayName) {
+      console.log('Setting username from Google:', googleUser.displayName);
       setUsername(googleUser.displayName);
     }
-  }, [googleUser?.displayName]);
+  }, [googleUser?.displayName, setUsername]); // Add setUsername dependency
 
 
   return (

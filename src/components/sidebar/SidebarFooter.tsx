@@ -31,10 +31,10 @@ const SidebarFooter: React.FC = () => {
                         className="border border-[#2d2d2d] w-10 h-auto rounded-full"
                     />
                     <div className="flex flex-col sm:hidden md:flex cursor-default">
-                        <p className="truncate w-28 sm:w-50 text-white text-sm" title={googleUser?.displayName ?? undefined}>
+                        <p className="truncate w-29 sm:w-3/4 text-white text-sm" title={googleUser?.displayName ?? undefined}>
                             {googleUser?.displayName}
                         </p>
-                        <p className="truncate w-28 sm:w-50 text-xs text-gray-400" title={googleUser?.email ?? undefined}>
+                        <p className="truncate w-29 sm:w-3/4 text-xs text-gray-400" title={googleUser?.email ?? undefined}>
                             {googleUser?.email}
                         </p>
                     </div>

@@ -71,6 +71,7 @@ import { UserActionMenuProvider } from '../components/useUserActionMenu';
 import Toast from '../../react-native-toast-message';
 import { AuthErrorCodes } from '../utils/common';
 import useGetName from '../utils/useGetName';
+import { useAuth } from './auth/AuthContext';
 
 enum RnEncryptionEnum {
   /**
@@ -122,8 +123,8 @@ const VideoCall: React.FC = () => {
   const joiningLoaderLabel = useString(videoRoomStartingCallText)();
   const bannedUserText = useString(userBannedText)();
 
-  const username = useGetName();
-  console.log('Current username from useGetName:', username);
+  const {googleUser} = useAuth()
+  const username = googleUser?.displayName
 
   useEffect(() => {
     console.log('🟢 VideoCall: Username changed to:', username);

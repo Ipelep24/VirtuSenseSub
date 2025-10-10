@@ -22,12 +22,14 @@ const Dashboard: React.FC & {
                         <h1 className='text-2xl sm:text-3xl tracking-normal sm:tracking-wide text-gray-500 leading-11'>Engage, interact, and<br /> understand with VirtuSense.</h1>
                     </div>
                 </div>
-                <button
-                    className='bg-[#1a7368] px-4 py-2 rounded-md cursor-pointer hover:bg-[#165b53]'
-                    onClick={() => history.push('/create')}
-                >
-                    Get Started
-                </button>
+                <div className='flex w-full justify-center lg:justify-start'>
+                    <button
+                        className='bg-[#1a7368] w-1/2 md:w-1/3 px-4 py-2 rounded-md cursor-pointer hover:bg-[#165b53]'
+                        onClick={() => history.push('/create')}
+                    >
+                        Get Started
+                    </button>
+                </div>
             </div>
             <div className='w-full h-full lg:w-1/2 gap-15 flex flex-col justify-center items-center'>
                 <img

@@ -245,46 +245,166 @@ export default class RtcEngine {
   private speakerDeviceId = '';
   private usersVolumeLevel = [];
 
-  private ferInterval = { current: null };
-  private localRef: { current: HTMLElement | null } = { current: null };
-  private channelName = ''
-
+  private ferInterval: NodeJS.Timeout | null = null;
+  private currentHostCount: number = 0;
+  private channelName = '';
   private meetingTitle = '';
-  private isHost = 'false';
-  private username = ''
+  private isHost = false;
+  private username = '';
+  private sessionId = '';
 
-  // Add a method to set meeting metadata
+  initialize(context: RtcEngineContext) {
+    const { appId } = context;
+    logger.log(LogSource.AgoraSDK, 'Log', 'RTC engine initialized');
+    this.appId = appId;
+
+    // Set up event listener for host count changes
+    window.addEventListener('fer:totalHostsChanged', this.handleHostCountChange);
+
+    console.log('🔄 RTCENGINE: FER monitoring initialized');
+  }
+
+  private handleHostCountChange = (event: CustomEvent) => {
+    const newHostCount = event.detail.totalHosts;
+
+    console.log('🔔 RTCENGINE: Received host count event:', newHostCount);
+
+    if (this.currentHostCount !== newHostCount) {
+      console.log(`👥 RTCENGINE: Host count changed: ${this.currentHostCount} → ${newHostCount}`);
+      this.currentHostCount = newHostCount;
+      this.checkFERState();
+    }
+  };
+
   setMeetingMetadata(metadata: {
     meetingTitle?: string;
     isHost?: boolean;
     username?: string;
+    sessionId?: string;
   }) {
     console.log('🔧 RTCENGINE: setMeetingMetadata called with:', metadata);
-    if (metadata.meetingTitle !== undefined) this.meetingTitle = metadata.meetingTitle;
-    if (metadata.isHost !== undefined) this.isHost = metadata.isHost;
-    if (metadata.username !== undefined) this.username = metadata.username
+
+    if (metadata.meetingTitle !== undefined) {
+      this.meetingTitle = metadata.meetingTitle;
+    }
+    if (metadata.isHost !== undefined) {
+      this.isHost = metadata.isHost;
+    }
+    if (metadata.username !== undefined) {
+      this.username = metadata.username;
+    }
+    if (metadata.sessionId !== undefined) {
+      this.sessionId = metadata.sessionId;
+    }
+    this.checkFERState();
   }
 
-  // Create channel profile and set it here
-  private startFER() {
-    const track = this.localStream.video?.getMediaStreamTrack();
-    if (!track || track.readyState !== 'live') {
-      console.warn('FER skipped: video track not live');
+
+  private checkFERState() {
+    const hasHosts = this.currentHostCount > 0;
+
+    console.log('🔍 RTCENGINE: Checking FER state:', {
+      isHost: this.isHost,
+      currentHostCount: this.currentHostCount,
+      hasHosts,
+      isVideoEnabled: this.isVideoEnabled,
+      ferRunning: !!this.ferInterval,
+    });
+
+    // Rule 1: If I'm a host, never run FER
+    if (this.isHost) {
+      if (this.ferInterval) {
+        console.log('⏹️ RTCENGINE: Stopping FER - user is host');
+        this.stopFER();
+      }
       return;
     }
+
+    // Rule 2: If I'm an attendee...
+
+    // Stop FER if: no hosts OR video disabled
+    if ((!hasHosts || !this.isVideoEnabled) && this.ferInterval) {
+      console.warn('⏸️ RTCENGINE: Stopping FER - conditions not met', {
+        hasHosts,
+        isVideoEnabled: this.isVideoEnabled,
+      });
+      this.stopFER();
+      return;
+    }
+
+    // Start FER if: hosts present AND video enabled AND not already running
+    if (hasHosts && this.isVideoEnabled && !this.ferInterval) {
+      console.log('▶️ RTCENGINE: Starting FER - all conditions met');
+      this.startFER();
+    }
+  }
+
+  private startFER() {
+    // Safety check 1: Never run if host
+    if (this.isHost) {
+      console.log('⏭️ RTCENGINE: Skipping FER - local user is host');
+      return;
+    }
+
+    // Safety check 2: Must have hosts
+    if (this.currentHostCount === 0) {
+      console.warn('⏸️ RTCENGINE: Skipping FER - no hosts in session');
+      return;
+    }
+
+    // Safety check 3: Video must be enabled
+    if (!this.isVideoEnabled) {
+      console.warn('⏸️ RTCENGINE: Skipping FER - video disabled');
+      return;
+    }
+
+    // Safety check 4: Video track must be live
+    const track = this.localStream.video?.getMediaStreamTrack();
+    if (!track || track.readyState !== 'live') {
+      console.warn('⏸️ RTCENGINE: FER skipped - video track not live');
+      return;
+    }
+
+    // Safety check 5: Don't start if already running
+    if (this.ferInterval) {
+      console.log('ℹ️ RTCENGINE: FER already running, skipping start');
+      return;
+    }
+
+    console.log('▶️ RTCENGINE: Starting FER');
 
     const imageCapture = new ImageCapture(track);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    this.ferInterval.current = setInterval(async () => {
+    this.ferInterval = setInterval(async () => {
       try {
+        // Re-check conditions on every iteration
+        if (this.currentHostCount === 0) {
+          console.warn('⏸️ FER: No hosts detected, stopping');
+          this.stopFER();
+          return;
+        }
+
+        if (!this.isVideoEnabled) {
+          console.warn('⏸️ FER: Video disabled, stopping');
+          this.stopFER();
+          return;
+        }
+
+        const currentTrack = this.localStream.video?.getMediaStreamTrack();
+        if (!currentTrack || currentTrack.readyState !== 'live') {
+          console.warn('FER: Track no longer live, stopping interval');
+          this.stopFER();
+          return;
+        }
+
         const bitmap = await imageCapture.grabFrame();
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
         ctx?.drawImage(bitmap, 0, 0);
 
-        const imageData = canvas.toDataURL('image/jpeg', 0.6); // compress to 60%
+        const imageData = canvas.toDataURL('image/jpeg', 0.6);
         const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
 
         const response = await fetch('http://localhost:3000/fer', {
@@ -299,29 +419,39 @@ export default class RtcEngine {
           console.log(
             `Detected emotion - Channel: ${this.channelName} | ` +
             `Meeting: ${this.meetingTitle || 'N/A'} | ` +
-            `Is host: ${this.isHost} |` +
-            `Username: ${this.username} |` +
+            `Is host: ${this.isHost} | ` +
+            `Username: ${this.username} | ` +
             `Emotion:`, emotion
           );
         }
       } catch (err) {
-        console.error('FER Error:', err);
+        if (err.name !== 'InvalidStateError') {
+          console.error('FER Error:', err);
+        }
       }
     }, 600);
   }
 
+  // Stop FER
   private stopFER() {
-    if (this.ferInterval.current) {
-      clearInterval(this.ferInterval.current);
-      this.ferInterval.current = null;
+    if (this.ferInterval) {
+      console.log('⏹️ RTCENGINE: Stopping FER');
+      clearInterval(this.ferInterval);
+      this.ferInterval = null;
     }
   }
 
-  initialize(context: RtcEngineContext) {
-    const { appId } = context;
-    logger.log(LogSource.AgoraSDK, 'Log', 'RTC engine initialized');
-    this.appId = appId;
+  // Clean up FER monitoring
+  private cleanupFERMonitoring() {
+    console.log('🛑 RTCENGINE: Cleaning up FER monitoring');
+    
+    // Remove event listener
+    window.removeEventListener('fer:totalHostsChanged', this.handleHostCountChange);
+    
+    // Stop FER if running
+    this.stopFER();
   }
+
   getLocalVideoStats() {
     try {
       logger.log(
@@ -465,15 +595,6 @@ export default class RtcEngine {
     preferredCameraId?: string,
     preferredMicrophoneId?: string,
   ): Promise<void> {
-    /**
-     * Issue: Backgrounding the browser or app causes the audio streaming to be cut off.
-     * Impact: All browsers and apps that use WKWebView on iOS 15.x, such as Safari and Chrome.
-     * Solution:
-     *    Upgrade to the Web SDK v4.7.3 or later versions.
-     *    When calling createMicrophoneAudioTrack, set bypassWebAudio as true.
-     *    The Web SDK directly publishes the local audio stream without processing it through WebAudio.
-     */
-
     const audioConfig: MicrophoneAudioTrackInitConfig = {
       bypassWebAudio: Platform.OS == 'web' && isMobileOrTablet(),
       microphoneId: preferredMicrophoneId,
@@ -483,6 +604,7 @@ export default class RtcEngine {
       encoderConfig: this.videoProfile,
       cameraId: preferredCameraId,
     };
+    
     try {
       logger.log(
         LogSource.AgoraSDK,
@@ -494,8 +616,6 @@ export default class RtcEngine {
         },
       );
       let [localAudio, localVideo] =
-        // If preferred devices are not present, the createTrack call will fallover to
-        // the catch block below.
         await AgoraRTC.createMicrophoneAndCameraTracks(
           audioConfig,
           videoConfig,
@@ -515,6 +635,10 @@ export default class RtcEngine {
         .getSettings().deviceId;
       this.isVideoEnabled = true;
       this.isAudioEnabled = true;
+
+      // Check if FER should start after video is enabled
+      console.log('📹 Video enabled - checking FER state');
+      this.checkFERState();
     } catch (e) {
       logger.log(
         LogSource.AgoraSDK,
@@ -526,6 +650,7 @@ export default class RtcEngine {
       );
       let audioError = false;
       let videoError = false;
+      
       try {
         let localAudio: IMicrophoneAudioTrack;
         logger.log(
@@ -553,7 +678,7 @@ export default class RtcEngine {
             'Log',
             'RTC [createMicrophoneAudioTrack] Setting microphoneId as empty and again creating audio track',
           );
-          videoConfig.microphoneId = '';
+          audioConfig.microphoneId = '';
           localAudio = await AgoraRTC.createMicrophoneAudioTrack(audioConfig);
           logger.log(
             LogSource.AgoraSDK,
@@ -655,6 +780,10 @@ export default class RtcEngine {
           ?.getMediaStreamTrack()
           .getSettings().deviceId;
         this.isVideoEnabled = true;
+
+        // Check if FER should start after video is enabled (even in error recovery)
+        console.log('📹 Video enabled (recovery path) - checking FER state');
+        this.checkFERState();
       } catch (error) {
         logger.error(
           LogSource.AgoraSDK,
@@ -664,13 +793,9 @@ export default class RtcEngine {
         );
         videoError = error;
       }
+      
       e.status = { audioError, videoError };
       throw e;
-      // if (audioError && videoError) throw e;
-      // else
-      //   throw new Error(
-      //     audioError ? 'No Microphone found' : 'No Video device found',
-      //   );
     }
   }
 
@@ -926,7 +1051,7 @@ export default class RtcEngine {
         highestvolumeObj && highestvolumeObj?.level > 0 && highestvolumeObj?.uid
           ? highestvolumeObj.uid
           : undefined;
-
+  
       //To avoid infinite calling dispatch checking if condition.
       if (this.activeSpeakerUid !== activeSpeakerUid) {
         const activeSpeakerCallBack = this.eventsMap.get(
@@ -1028,11 +1153,16 @@ export default class RtcEngine {
       'API',
       'RTC [leave] client has left the channel successfully',
     );
+    
     this.remoteStreams.forEach((stream, uid, map) => {
       stream.video?.close();
       stream.audio?.close();
     });
     this.remoteStreams.clear();
+    
+    // Stop FER when leaving channel
+    this.stopFER();
+    
     logger.log(
       LogSource.AgoraSDK,
       'Log',
@@ -1127,19 +1257,13 @@ export default class RtcEngine {
     let didProcureMutexLock = false;
     try {
       if (!this.muteLocalVideoMutex) {
-        // If there no mutex lock, procure a lock
         this.muteLocalVideoMutex = true;
         didProcureMutexLock = true;
-        /** setEnabled
-         *  The SDK stops audio or video capture.
-         *  The indicator light of the camera turns off and stays off.
-         *  It takes more time for the audio or video to resume.
-         */
+
         logger.log(
           LogSource.AgoraSDK,
           'Log',
-          `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'
-          } local video stream`,
+          `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'} local video stream`,
         );
         logger.log(
           LogSource.AgoraSDK,
@@ -1147,22 +1271,21 @@ export default class RtcEngine {
           `RTC [setEnabled] on video track with value - ${!muted}`,
         );
         await this.localStream.video?.setEnabled(!muted);
-        if (!muted) {
-          this.startFER();
-        } else {
-          this.stopFER(); // Add this method to cleanly halt FER
-        }
+
+        // Update state BEFORE checking FER
+        this.isVideoEnabled = !muted;
+
+        // Check FER state after video state changes
+        console.log(`📹 Video ${muted ? 'muted' : 'unmuted'} - checking FER state`);
+        this.checkFERState();
+
         logger.log(
           LogSource.AgoraSDK,
           'API',
           'RTC [setEnabled] on video track done successfully',
         );
-        // Release the lock once done
         this.muteLocalVideoMutex = false;
 
-        this.isVideoEnabled = !muted;
-
-        // Unpublish only after when the user has joined the call
         if (!muted && !this.isVideoPublished && this.isJoined) {
           logger.log(
             LogSource.AgoraSDK,
@@ -1173,15 +1296,13 @@ export default class RtcEngine {
         }
       }
     } catch (e) {
-      // If the function procures the mutex,
-      // but if mute throws an error, the lock won't be released
       if (didProcureMutexLock) {
         this.muteLocalVideoMutex = false;
       }
       logger.error(
         LogSource.AgoraSDK,
         'Log',
-        'RTC  [setEnabled] Error Be sure to invoke the enableVideo method before calling setEnabled method.',
+        'RTC [setEnabled] Error Be sure to invoke the enableVideo method before calling setEnabled method.',
         e,
       );
     }
@@ -1601,10 +1722,12 @@ export default class RtcEngine {
       this.screenClient.leave();
       (this.eventsMap.get('onScreenshareStopped') as callbackType)();
     }
+    
     this.eventsMap.forEach((callback, event, map) => {
       this.client.off(event, callback);
     });
     this.eventsMap.clear();
+    
     if (this.remoteStreams.size !== 0) {
       this.remoteStreams.forEach((stream, uid, map) => {
         stream?.video?.isPlaying && stream?.video?.stop();
@@ -1612,13 +1735,17 @@ export default class RtcEngine {
       });
       this.remoteStreams.clear();
     }
-    this.stopFER();
+    
+    // Clean up FER monitoring completely
+    this.cleanupFERMonitoring();
+    
     this.localStream.audio?.close();
     this.localStream.video?.close();
     this.localStream = {};
     this.screenStream.audio?.close();
     this.screenStream.video?.close();
     this.screenStream = {};
+    
     logger.log(
       LogSource.AgoraSDK,
       'Log',

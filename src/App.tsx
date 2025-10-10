@@ -14,6 +14,7 @@ import AppRoutes from './AppRoutes';
 import { isWebInternal } from './utils/common';
 import LocalEventEmitter, { LocalEventsEnum } from './rtm-events-api/LocalEvents';
 import { AuthProvider } from './pages/auth/AuthContext';
+import { useHistory } from 'react-router-dom';
 
 // hook can't be used in the outside react function calls. so directly checking the platform.
 if (Platform.OS === 'ios') {
@@ -44,6 +45,7 @@ declare global {
 }
 
 const App: React.FC = () => {
+  const history = useHistory()
   //commented for v1 release
   //const CustomRoutes = useCustomization((data) => data?.customRoutes);
   // const RenderCustomRoutes = () => {
@@ -108,6 +110,19 @@ const App: React.FC = () => {
     LocalEventEmitter.on(LocalEventsEnum.SDK_TOKEN_CHANGED, updateToken);
     return () => {
       LocalEventEmitter.off(LocalEventsEnum.SDK_TOKEN_CHANGED, updateToken);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'firebaseLogout') {
+        history.push('/auth') // Redirect to login
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 

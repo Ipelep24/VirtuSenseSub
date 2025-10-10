@@ -10,11 +10,13 @@ const SidebarFooter: React.FC = () => {
     const LogoutIcon = RxExit as React.ComponentType<{ className?: string; onClick?: () => void }>;
 
     const handleLogout = async () => {
-        try {  
+        try {
             const auth = getAuth();
             await auth.signOut()
+            localStorage.setItem('firebaseLogout', Date.now().toString());
+
             history.push('/auth')
-        } catch(error) {
+        } catch (error) {
             console.error('Sign out error: ', error)
         }
     }
@@ -40,11 +42,11 @@ const SidebarFooter: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <div 
+            <div
                 className='py-2 mb-2 flex gap-2 items-center justify-center cursor-pointer text-gray-500 opacity-60 hover:text-gray-300 transition-colors'
                 onClick={() => handleLogout()}
             >
-                <LogoutIcon className='w-4 h-4'/>
+                <LogoutIcon className='w-4 h-4' />
                 <p className='text-sm block sm:hidden md:block'>Logout</p>
             </div>
         </div>

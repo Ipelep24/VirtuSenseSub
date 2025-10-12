@@ -23,7 +23,7 @@ const SidebarFooter: React.FC = () => {
 
     return (
         <div className='flex justify-center items-center flex-col h-1/8 w-full'>
-            <div className="relative w-full h-full flex justify-center items-center p-2 gap-2 sm:gap-0 md:gap-2 bg-[#2d2d2d] sm:bg-[#1d1d1d] md:bg-[#2d2d2d] rounded-md">
+            <div className="relative w-full h-full flex justify-center items-center p-2 gap-2 sm:gap-0 lg:gap-2 bg-[#2d2d2d] sm:bg-[#1d1d1d] lg:bg-[#2d2d2d] rounder-md">
                 <div className="flex items-center gap-2">
                     <img
                         src={googleUser?.photoURL}
@@ -32,7 +32,7 @@ const SidebarFooter: React.FC = () => {
                         height={100}
                         className="border border-[#2d2d2d] w-10 h-auto rounded-full"
                     />
-                    <div className="flex flex-col sm:hidden md:flex cursor-default">
+                    <div className="flex flex-col sm:hidden lg:flex cursor-default">
                         <p className="truncate w-29 sm:w-3/4 text-white text-sm" title={googleUser?.displayName ?? undefined}>
                             {googleUser?.displayName}
                         </p>
@@ -47,7 +47,7 @@ const SidebarFooter: React.FC = () => {
                 onClick={() => handleLogout()}
             >
                 <LogoutIcon className='w-4 h-4' />
-                <p className='text-sm block sm:hidden md:block'>Logout</p>
+                <p className='text-sm block sm:hidden lg:block'>Logout</p>
             </div>
         </div>
     )

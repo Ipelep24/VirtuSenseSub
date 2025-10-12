@@ -7,8 +7,8 @@ type Props = {
 };
 
 export const SidebarLayout: React.FC<Props> = ({ children }) => (
-  <div className='flex flex-col sm:flex-row h-screen w-screen'>
+  <div className='flex flex-col sm:flex-row h-screen w-screen select-none'>
     <Sidebar/>
-    <main className='h-full w-full flex overflow-scroll'>{children}</main>
+    <main className='h-full w-full overflow-auto'>{children}</main>
   </div>
 );

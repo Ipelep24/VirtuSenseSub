@@ -94,6 +94,7 @@ const VideoCall: React.FC = () => {
 
   const { googleUser } = useAuth()
   const username = googleUser?.displayName
+  const userUID = googleUser?.uid
   const { data } = useRoomInfo()
 
   const [rtcProps, setRtcProps] = React.useState({
@@ -118,17 +119,6 @@ const VideoCall: React.FC = () => {
     preferredMicrophoneId: null,
     recordingBot: false,
   });
-
-  // Update username in rtcProps when it changes
-  useEffect(() => {
-    if (!username) return;
-
-    console.log('🟢 VideoCall: Username changed to:', username);
-    setRtcProps(prev => ({
-      ...prev,
-      username: username,
-    }));
-  }, [username]);
 
   const { setGlobalErrorMessage } = useContext(ErrorContext);
   const { awake, release } = useWakeLock();
@@ -334,6 +324,7 @@ const VideoCall: React.FC = () => {
         meetingTitle: roomData.meetingTitle || '',
         isHost: roomData.isHost,
         username: username,
+        userUID: userUID,
         encryption: $config.ENCRYPTION_ENABLED
           ? {
             key: roomData.encryptionSecret,
@@ -366,7 +357,7 @@ const VideoCall: React.FC = () => {
       }
       setQueryComplete(true);
     }
-  }, [isJoinDataFetched, roomData, queryComplete, username, isInWaitingRoom, waitingRoomStatus, waitingRoomAttendeeJoined]);
+  }, [isJoinDataFetched, roomData, queryComplete, username, userUID, isInWaitingRoom, waitingRoomStatus, waitingRoomAttendeeJoined]);
 
   const callbacks: CallbacksInterface = {
     EndCall: () => {

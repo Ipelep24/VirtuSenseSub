@@ -11,12 +11,12 @@ const Dashboard: React.FC & {
     const history = useHistory()
 
     return (
-        <div className='h-full w-full flex flex-col gap-15 lg:flex-row p-4 text-white'>
-            <div className='w-full h-full lg:w-1/2'>
+        <div className='h-full w-full flex flex-col gap-15 lg:flex-row text-white p-4 bg-[#1c1c1b]'>
+            <div className='w-full h-full lg:w-1/2 lg:flex flex-col space-y-7 justify-around'>
                 <Time />
-                <div className='my-7 sm:my-15'>
+                <div className='flex flex-col gap-3'>
                     <div>
-                        <h1 className='text-3xl sm:text-[40px] tracking-wide leading-12 [word-spacing:0.2em]'>Video calls and emotion-aware learning for all.</h1>
+                        <h1 className='text-3xl sm:text-[40px] tracking-wide leading-12 [word-spacing:0.2em] whitespace-break-spaces'>Video calls and emotion-aware learning for all.</h1>
                     </div>
                     <div>
                         <h1 className='text-2xl sm:text-3xl tracking-normal sm:tracking-wide text-gray-500 leading-11'>Engage, interact, and<br /> understand with VirtuSense.</h1>
@@ -31,13 +31,13 @@ const Dashboard: React.FC & {
                     </button>
                 </div>
             </div>
-            <div className='w-full h-full lg:w-1/2 gap-15 flex flex-col justify-center items-center'>
+            <div className='w-full h-full lg:w-1/2 gap-15 py-4 flex flex-col justify-center items-center'>
                 <img
                     src={homeImage}
                     alt='Image'
                     width={700}
                     height={700}
-                    className='w-3/4 h-auto'
+                    className='w-3/4 h-auto rounded-md'
                 />
                 <div className='w-2/3'>
                     <h1 className='text-center text-xl sm:text-2xl font-light'>Host or join a video conference with people around the world</h1>

@@ -34,6 +34,8 @@ import {
   type ScreenEncoderConfigurationPreset,
   type VideoEncoderConfiguration,
 } from '../../../src/app-state/useVideoQuality';
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../../../src/firebase';
 
 interface MediaDeviceInfo {
   readonly deviceId: string;
@@ -247,11 +249,21 @@ export default class RtcEngine {
 
   private ferInterval: NodeJS.Timeout | null = null;
   private currentHostCount: number = 0;
-  private channelName = '';
   private meetingTitle = '';
   private isHost = false;
   private username = '';
+  private userUID = '';
   private sessionId = '';
+
+  private emotionBatch: Array<{
+    emotion: string;
+    confidence: number;
+    timestamp: any;
+  }> = [];
+  private lastSavedEmotion: string | null = null;
+  private batchInterval: NodeJS.Timeout | null = null;
+  private readonly BATCH_WRITE_INTERVAL = 10000; // Write every 10 seconds
+  private readonly MIN_CONFIDENCE_THRESHOLD = 50; // 50% confidence minimum
 
   initialize(context: RtcEngineContext) {
     const { appId } = context;
@@ -280,10 +292,9 @@ export default class RtcEngine {
     meetingTitle?: string;
     isHost?: boolean;
     username?: string;
+    userUID?: string;
     sessionId?: string;
   }) {
-    console.log('🔧 RTCENGINE: setMeetingMetadata called with:', metadata);
-
     if (metadata.meetingTitle !== undefined) {
       this.meetingTitle = metadata.meetingTitle;
     }
@@ -292,6 +303,9 @@ export default class RtcEngine {
     }
     if (metadata.username !== undefined) {
       this.username = metadata.username;
+    }
+    if (metadata.userUID !== undefined) {
+      this.userUID = metadata.userUID;
     }
     if (metadata.sessionId !== undefined) {
       this.sessionId = metadata.sessionId;
@@ -377,6 +391,9 @@ export default class RtcEngine {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
+    // Start batch writing interval
+    this.startEmotionBatchWriter();
+
     this.ferInterval = setInterval(async () => {
       try {
         // Re-check conditions on every iteration
@@ -416,13 +433,31 @@ export default class RtcEngine {
         const result = await response.json();
         const emotion = result.faces?.[0]?.attributes?.emotion;
         if (emotion) {
-          console.log(
-            `Detected emotion - Channel: ${this.channelName} | ` +
-            `Meeting: ${this.meetingTitle || 'N/A'} | ` +
-            `Is host: ${this.isHost} | ` +
-            `Username: ${this.username} | ` +
-            `Emotion:`, emotion
-          );
+          // Find emotion with highest confidence
+          const highestEmotion = Object.entries(emotion).reduce((max, [emotionName, confidence]) => {
+            return (confidence as number) > max.confidence
+              ? { emotion: emotionName, confidence: confidence as number }
+              : max;
+          }, { emotion: '', confidence: 0 });
+
+          if (highestEmotion.confidence >= this.MIN_CONFIDENCE_THRESHOLD) {
+            // Only add to batch if emotion changed
+            if (highestEmotion.emotion !== this.lastSavedEmotion) {
+              // Convert to 0-1 decimal for storage (standardized format)
+              this.emotionBatch.push({
+                emotion: highestEmotion.emotion,
+                confidence: highestEmotion.confidence / 100, // ✅ Store as 0-1 decimal
+                timestamp: Timestamp.now(),
+              });
+
+              this.lastSavedEmotion = highestEmotion.emotion;
+            }
+          } else {
+            console.log(
+              `⚠️ Confidence too low: ${highestEmotion.emotion} ` +
+              `(${highestEmotion.confidence.toFixed(1)}%), skipping`
+            );
+          }
         }
       } catch (err) {
         if (err.name !== 'InvalidStateError') {
@@ -432,24 +467,91 @@ export default class RtcEngine {
     }, 600);
   }
 
-  // Stop FER
   private stopFER() {
     if (this.ferInterval) {
       console.log('⏹️ RTCENGINE: Stopping FER');
       clearInterval(this.ferInterval);
       this.ferInterval = null;
     }
+
+    // Stop batch writer and flush remaining emotions
+    if (this.batchInterval) {
+      clearInterval(this.batchInterval);
+      this.batchInterval = null;
+    }
+
+    // Write any remaining emotions before stopping
+    if (this.emotionBatch.length > 0) {
+      console.log(`💾 Flushing ${this.emotionBatch.length} remaining emotions...`);
+      this.writeEmotionBatch();
+    }
+
+    // Reset state
+    this.lastSavedEmotion = null;
+    this.emotionBatch = [];
   }
 
   // Clean up FER monitoring
   private cleanupFERMonitoring() {
     console.log('🛑 RTCENGINE: Cleaning up FER monitoring');
-    
+
     // Remove event listener
     window.removeEventListener('fer:totalHostsChanged', this.handleHostCountChange);
-    
+
     // Stop FER if running
     this.stopFER();
+  }
+
+  private startEmotionBatchWriter() {
+    // Clear any existing interval
+    if (this.batchInterval) {
+      clearInterval(this.batchInterval);
+    }
+
+    this.batchInterval = setInterval(async () => {
+      if (this.emotionBatch.length > 0) {
+        await this.writeEmotionBatch();
+      }
+    }, this.BATCH_WRITE_INTERVAL);
+  }
+
+  private async writeEmotionBatch() {
+    if (this.emotionBatch.length === 0) return;
+
+    try {
+      const attendeeRef = doc(
+        db,
+        'sessions',
+        this.sessionId,
+        'attendees',
+        this.userUID
+      );
+
+      const attendeeSnap = await getDoc(attendeeRef);
+
+      if (!attendeeSnap.exists()) {
+        // First time this attendee is being tracked
+        await setDoc(attendeeRef, {
+          userUID: this.userUID,
+          username: this.username || 'Unknown Attendee',
+          createdAt: serverTimestamp(),
+          emotions: this.emotionBatch,
+        });
+      } else {
+        // Append emotions to existing array
+        const currentData = attendeeSnap.data();
+        await setDoc(attendeeRef, {
+          username: this.username || currentData.username, // Update name if changed
+          emotions: [...(currentData.emotions || []), ...this.emotionBatch],
+        }, { merge: true });
+      }
+
+      // Clear the batch after successful write
+      this.emotionBatch = [];
+    } catch (error) {
+      console.error('❌ Error writing emotion batch:', error);
+      // Keep the batch to retry next interval
+    }
   }
 
   getLocalVideoStats() {
@@ -604,7 +706,7 @@ export default class RtcEngine {
       encoderConfig: this.videoProfile,
       cameraId: preferredCameraId,
     };
-    
+
     try {
       logger.log(
         LogSource.AgoraSDK,
@@ -650,7 +752,7 @@ export default class RtcEngine {
       );
       let audioError = false;
       let videoError = false;
-      
+
       try {
         let localAudio: IMicrophoneAudioTrack;
         logger.log(
@@ -793,7 +895,7 @@ export default class RtcEngine {
         );
         videoError = error;
       }
-      
+
       e.status = { audioError, videoError };
       throw e;
     }
@@ -872,6 +974,65 @@ export default class RtcEngine {
     }
   }
 
+  private async createOrUpdateSession() {
+    if (!this.sessionId) {
+      console.warn('⚠️ Cannot create session: missing sessionId');
+      return;
+    }
+
+    try {
+      const sessionRef = doc(db, 'sessions', this.sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+
+      if (!sessionSnap.exists()) {
+        // Create new session document
+        await setDoc(sessionRef, {
+          meetingTitle: this.meetingTitle || 'Untitled Meeting',
+          sessionID: this.sessionId,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      // Handle host logic
+      if (this.isHost && this.userUID) {
+        await this.addHostToSession();
+      }
+    } catch (error) {
+      console.error('❌ Error creating/updating session:', error);
+    }
+  }
+
+  private async addHostToSession() {
+    if (!this.sessionId || !this.userUID) {
+      console.warn('⚠️ Cannot add host: missing sessionId or userUID');
+      return;
+    }
+
+    try {
+      const hostRef = doc(db, 'sessions', this.sessionId, 'hosts', this.userUID);
+      const hostSnap = await getDoc(hostRef);
+
+      if (!hostSnap.exists()) {
+        // First time this host is joining
+        await setDoc(hostRef, {
+          userUID: this.userUID,
+          username: this.username || 'Unknown Host',
+          createdAt: serverTimestamp(),
+          rejoinedAt: [], // Empty array for first join
+        });
+      } else {
+        // Host is rejoining - add timestamp to rejoinedAt array
+        const currentData = hostSnap.data();
+        await setDoc(hostRef, {
+          username: this.username || currentData.username,
+          rejoinedAt: [...(currentData.rejoinedAt || []), Timestamp.now()], // Use Timestamp.now() instead
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error('❌ Error adding host:', error);
+    }
+  }
+
   async joinChannel(
     token: string,
     channelName: string,
@@ -880,22 +1041,18 @@ export default class RtcEngine {
       meetingTitle?: string;
       isHost?: boolean;
       username?: string;
+      userUID?: string;
+      sessionId?: string;
     }
   ): Promise<void> {
-    this.channelName = channelName;
-
     console.log('joinChannel called with _optionalInfo:', _optionalInfo);
-
     if (_optionalInfo) {
       this.setMeetingMetadata({
         meetingTitle: _optionalInfo.meetingTitle,
         isHost: _optionalInfo.isHost,
         username: _optionalInfo.username,
-      });
-      console.log('Metadata set:', {
-        meetingTitle: this.meetingTitle,
-        isHost: this.isHost,
-        username: this.username,
+        userUID: _optionalInfo.userUID,
+        sessionId: _optionalInfo.sessionId,
       });
     }
     this.client.on('user-joined', user => {
@@ -1133,6 +1290,8 @@ export default class RtcEngine {
     );
     this.isJoined = true;
 
+    await this.createOrUpdateSession();
+
     logger.log(
       LogSource.AgoraSDK,
       'Log',
@@ -1153,16 +1312,16 @@ export default class RtcEngine {
       'API',
       'RTC [leave] client has left the channel successfully',
     );
-    
+
     this.remoteStreams.forEach((stream, uid, map) => {
       stream.video?.close();
       stream.audio?.close();
     });
     this.remoteStreams.clear();
-    
+
     // Stop FER when leaving channel
     this.stopFER();
-    
+
     logger.log(
       LogSource.AgoraSDK,
       'Log',
@@ -1722,12 +1881,12 @@ export default class RtcEngine {
       this.screenClient.leave();
       (this.eventsMap.get('onScreenshareStopped') as callbackType)();
     }
-    
+
     this.eventsMap.forEach((callback, event, map) => {
       this.client.off(event, callback);
     });
     this.eventsMap.clear();
-    
+
     if (this.remoteStreams.size !== 0) {
       this.remoteStreams.forEach((stream, uid, map) => {
         stream?.video?.isPlaying && stream?.video?.stop();
@@ -1735,17 +1894,17 @@ export default class RtcEngine {
       });
       this.remoteStreams.clear();
     }
-    
+
     // Clean up FER monitoring completely
     this.cleanupFERMonitoring();
-    
+
     this.localStream.audio?.close();
     this.localStream.video?.close();
     this.localStream = {};
     this.screenStream.audio?.close();
     this.screenStream.video?.close();
     this.screenStream = {};
-    
+
     logger.log(
       LogSource.AgoraSDK,
       'Log',

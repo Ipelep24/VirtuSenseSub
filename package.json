@@ -117,6 +117,7 @@
     "react-router-native": "5.2.0",
     "react-spring-bottom-sheet": "3.4.1",
     "react-tooltip": "4.5.1",
+    "recharts": "^3.2.1",
     "rn-emoji-keyboard": "^1.7.0",
     "rn-fetch-blob": "0.12.0",
     "text-encoding": "^0.7.0",

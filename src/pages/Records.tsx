@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { Loading } from 'customization-api';
 import { SidebarLayout } from './layout/SidebarLayout';
 
 interface EmotionDetection {
@@ -114,6 +115,7 @@ const Records: React.FC & {
     layout?: (page: React.ReactNode) => JSX.Element;
 } = () => {
   const SidebarIcon = BsReverseLayoutSidebarReverse as React.ComponentType<{ className?: string; onClick?: () => void }>;
+  const [hoveringEmotion, setHoveringEmotion] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [sessions, setSessions] = useState<SessionData[]>([]);
@@ -152,14 +154,17 @@ const Records: React.FC & {
 
           attendeesSnap.forEach(attendeeDoc => {
             const attendeeData = attendeeDoc.data();
+            const emotions = attendeeData.emotions || [];
+            
+            if (emotions.length === 0) return;
+
             attendees.push({
               userUID: attendeeData.userUID,
               username: attendeeData.username,
               createdAt: attendeeData.createdAt,
-              emotions: attendeeData.emotions || []
+              emotions: emotions
             });
 
-            const emotions = attendeeData.emotions || [];
             totalEmotions += emotions.length;
 
             emotions.forEach((emotion: EmotionDetection) => {
@@ -173,9 +178,12 @@ const Records: React.FC & {
             });
           });
 
+          if (attendees.length === 0 || totalEmotions === 0) continue;
+
           let duration = '0 min';
+          const sessionCreated = sessionData.createdAt?.toDate ? sessionData.createdAt.toDate() : new Date(sessionData.createdAt);
           if (firstTimestamp && lastTimestamp) {
-            const durationMs = lastTimestamp.getTime() - firstTimestamp.getTime();
+            const durationMs = lastTimestamp.getTime() - sessionCreated.getTime();
             const durationMin = Math.round(durationMs / 60000);
             duration = `${durationMin} min`;
           }
@@ -283,16 +291,16 @@ const Records: React.FC & {
       return [];
     }
 
+    const sessionCreatedTime = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt);
+
     const allEmotions: {emotion: string; timestamp: Date}[] = [];
     session.attendees.forEach(attendee => {
       if (!attendee.emotions || attendee.emotions.length === 0) {
-        console.warn('Attendee has no emotions:', attendee.username);
         return;
       }
       
       attendee.emotions.forEach(emotion => {
         if (!emotion.timestamp) {
-          console.warn('Emotion has no timestamp:', emotion);
           return;
         }
         
@@ -310,25 +318,25 @@ const Records: React.FC & {
 
     allEmotions.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-    const firstTime = allEmotions[0].timestamp;
     const lastTime = allEmotions[allEmotions.length - 1].timestamp;
-    const totalDuration = lastTime.getTime() - firstTime.getTime();
+    const totalDuration = lastTime.getTime() - sessionCreatedTime.getTime();
     const durationMinutes = Math.ceil(totalDuration / 60000);
-    const binCount = Math.max(1, Math.ceil(durationMinutes));
+    const binCount = Math.max(1, Math.ceil(durationMinutes / 5));
 
     const bins: any[] = [];
+    
     for (let i = 0; i < binCount; i++) {
       const binStart = i * 5;
       const binEnd = (i + 1) * 5;
-      const binLabel = `${binStart}-${binEnd}`;
+      const binLabel = `${binStart}-${binEnd}m`;
 
       const binData: any = { time: binLabel };
-      Object.keys(EMOTION_COLORS).forEach(emotion => {
-        binData[emotion] = 0;
+      Object.keys(EMOTION_COLORS).forEach(emotionName => {
+        binData[emotionName] = 0;
       });
 
       allEmotions.forEach(({ emotion, timestamp }) => {
-        const minutesSinceStart = (timestamp.getTime() - firstTime.getTime()) / 60000;
+        const minutesSinceStart = (timestamp.getTime() - sessionCreatedTime.getTime()) / 60000;
         if (minutesSinceStart >= binStart && minutesSinceStart < binEnd) {
           binData[emotion] = (binData[emotion] || 0) + 1;
         }
@@ -348,12 +356,7 @@ const Records: React.FC & {
 
   if (loading) {
     return (
-      <div className='h-full w-full flex items-center justify-center text-white bg-[#1c1c1b]'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4'></div>
-          <p className='text-gray-400'>Loading your sessions...</p>
-        </div>
-      </div>
+      <Loading text='Loading...'/>
     );
   }
 
@@ -423,8 +426,8 @@ const Records: React.FC & {
                         data={overallEmotionData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
+                        innerRadius={40}
+                        outerRadius={60}
                         paddingAngle={2}
                         dataKey="value"
                         label={(entry) => `${entry.percent}%`}
@@ -507,14 +510,74 @@ const Records: React.FC & {
                       <XAxis dataKey="time" stroke="#9ca3af" style={{ fontSize: '12px' }} />
                       <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: '12px' }} />
-                      <Area type="monotone" dataKey="happiness" stackId="1" stroke={EMOTION_COLORS.happiness} fill={EMOTION_COLORS.happiness} />
-                      <Area type="monotone" dataKey="neutral" stackId="1" stroke={EMOTION_COLORS.neutral} fill={EMOTION_COLORS.neutral} />
-                      <Area type="monotone" dataKey="fear" stackId="1" stroke={EMOTION_COLORS.fear} fill={EMOTION_COLORS.fear} />
-                      <Area type="monotone" dataKey="surprise" stackId="1" stroke={EMOTION_COLORS.surprise} fill={EMOTION_COLORS.surprise} />
-                      <Area type="monotone" dataKey="sadness" stackId="1" stroke={EMOTION_COLORS.sadness} fill={EMOTION_COLORS.sadness} />
-                      <Area type="monotone" dataKey="anger" stackId="1" stroke={EMOTION_COLORS.anger} fill={EMOTION_COLORS.anger} />
-                      <Area type="monotone" dataKey="disgust" stackId="1" stroke={EMOTION_COLORS.disgust} fill={EMOTION_COLORS.disgust} />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '12px' }}
+                        onMouseEnter={(e) => setHoveringEmotion(String(e.dataKey))}
+                        onMouseLeave={() => setHoveringEmotion(null)}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="happiness" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.happiness} 
+                        fill={EMOTION_COLORS.happiness}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="neutral" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.neutral} 
+                        fill={EMOTION_COLORS.neutral}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="fear" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.fear} 
+                        fill={EMOTION_COLORS.fear}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="surprise" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.surprise} 
+                        fill={EMOTION_COLORS.surprise}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="sadness" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.sadness} 
+                        fill={EMOTION_COLORS.sadness}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="anger" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.anger} 
+                        fill={EMOTION_COLORS.anger}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 0.8 : 0.2}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="disgust" 
+                        stackId="1" 
+                        stroke={EMOTION_COLORS.disgust} 
+                        fill={EMOTION_COLORS.disgust}
+                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 1 : 0.3}
+                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 0.8 : 0.2}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
@@ -565,35 +628,38 @@ const Records: React.FC & {
                   {timelineData.length > 0 ? (
                     <>
                       {(() => {
-                        const peakHappiness = timelineData.reduce((max: any, item: any) => (item.happiness || 0) > (max.happiness || 0) ? item : max, timelineData[0]);
-                        return (
-                          <div className='p-3 bg-[#2d2d2d] rounded-lg'>
-                            <p className='text-xs text-gray-500 mb-1'>Most happiness</p>
-                            <p className='font-medium'>{peakHappiness.time} min</p>
-                            <p className='text-xs text-gray-400 mt-1'>{peakHappiness.happiness || 0} detections</p>
-                          </div>
-                        );
+                        const emotionPeaks = sessionEmotionData.slice(0, 3);
+                        return emotionPeaks.map((emotionItem, index) => {
+                          const peakBin = timelineData.reduce((max: any, item: any) => {
+                            const currentCount = item[emotionItem.name] || 0;
+                            const maxCount = max[emotionItem.name] || 0;
+                            return currentCount > maxCount ? item : max;
+                          }, timelineData[0]);
+
+                          return (
+                            <div key={emotionItem.name} className='p-3 bg-[#2d2d2d] rounded-lg'>
+                              <p className='text-xs text-gray-500 mb-1 capitalize'>
+                                {emotionItem.name}
+                              </p>
+                              <p className='font-medium'>{peakBin.time}</p>
+                              <p className='text-xs text-gray-400 mt-1'>{peakBin[emotionItem.name] || 0} detections</p>
+                            </div>
+                          );
+                        });
                       })()}
-                      {(() => {
-                        const peakFear = timelineData.reduce((max: any, item: any) => (item.fear || 0) > (max.fear || 0) ? item : max, timelineData[0]);
-                        return (
-                          <div className='p-3 bg-[#2d2d2d] rounded-lg'>
-                            <p className='text-xs text-gray-500 mb-1'>Most fear</p>
-                            <p className='font-medium'>{peakFear.time} min</p>
-                            <p className='text-xs text-gray-400 mt-1'>{peakFear.fear || 0} detections</p>
-                          </div>
-                        );
-                      })()}
-                      {(() => {
-                        const peakNeutral = timelineData.reduce((max: any, item: any) => (item.neutral || 0) > (max.neutral || 0) ? item : max, timelineData[0]);
-                        return (
-                          <div className='p-3 bg-[#2d2d2d] rounded-lg'>
-                            <p className='text-xs text-gray-500 mb-1'>Most neutral</p>
-                            <p className='font-medium'>{peakNeutral.time} min</p>
-                            <p className='text-xs text-gray-400 mt-1'>{peakNeutral.neutral || 0} detections</p>
-                          </div>
-                        );
-                      })()}
+                      {sessionEmotionData.length < 3 && (
+                        <>
+                          {Array(3 - sessionEmotionData.length).fill(null).map((_, i) => (
+                            <div key={`empty-${i}`} className='p-3 bg-[#2d2d2d] rounded-lg'>
+                              <p className='text-xs text-gray-500 mb-1'>
+                                {sessionEmotionData.length + i + 1}. --
+                              </p>
+                              <p className='font-medium'>--</p>
+                              <p className='text-xs text-gray-400 mt-1'>N/A</p>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </>
                   ) : (
                     <div className='col-span-3 text-center text-gray-500'>No peak data available</div>
@@ -615,7 +681,7 @@ const Records: React.FC & {
 
         <div
           className={`h-full bg-[#1d1d1d] border-l border-[#2d2d2d] transition-all duration-300 ease-in-out ${
-            isOpen ? 'w-60 sm:w-72' : 'w-0'
+            isOpen ? 'w-60' : 'w-0'
           } overflow-hidden shadow-2xl sm:shadow-none`}
         >
           <div className='p-4 sm:p-6 h-full overflow-auto'>
@@ -651,5 +717,4 @@ const Records: React.FC & {
 };
 
 Records.layout = (page) => <SidebarLayout>{page}</SidebarLayout>
-
 export default Records;

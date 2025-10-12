@@ -19,10 +19,10 @@ module.exports = merge(commons, {
     },
   },
   experiments: {
-    // lazyCompilation: {
-    //   entries: true,
-    //   imports: true,
-    // },
+    lazyCompilation: {
+      entries: true,
+      imports: true,
+    },
     cacheUnaffected: true, // skips recompiling unchanged modules
   },
   module: {

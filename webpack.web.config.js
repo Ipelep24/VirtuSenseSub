@@ -10,7 +10,7 @@ module.exports = merge(commons, {
     main: './index.web.js',
   },
   output: {
-    path: path.resolve(__dirname, `../Builds/web`),
+    path: path.resolve(__dirname, `./Builds/web`),
   },
   cache: {
     type: 'filesystem',
@@ -18,12 +18,11 @@ module.exports = merge(commons, {
       config: [__filename], // ensures cache invalidates on config change
     },
   },
-
   experiments: {
-    lazyCompilation: {
-      entries: true,
-      imports: true,
-    },
+    // lazyCompilation: {
+    //   entries: true,
+    //   imports: true,
+    // },
     cacheUnaffected: true, // skips recompiling unchanged modules
   },
   module: {

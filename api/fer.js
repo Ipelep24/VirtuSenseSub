@@ -1,12 +1,8 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-const app = express();
-app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
-
-app.post('/fer', async (req, res) => {
   const base64 = req.body.image_base64;
   if (!base64) return res.status(400).json({ error: 'Missing image_base64' });
 
@@ -23,13 +19,9 @@ app.post('/fer', async (req, res) => {
     });
 
     const result = await response.json();
-    res.json(result);
+    res.status(200).json(result);
   } catch (err) {
     console.error('FER proxy error:', err.stack || err.message);
     res.status(500).json({ error: 'FER proxy failed', details: err.message });
   }
-});
-
-app.listen(3000, () => {
-  console.log('✅ FER proxy running on http://localhost:3000');
-});
+}

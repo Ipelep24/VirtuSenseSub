@@ -424,7 +424,7 @@ export default class RtcEngine {
         const imageData = canvas.toDataURL('image/jpeg', 0.6);
         const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
 
-        const response = await fetch('http://localhost:3000/fer', {
+        const response = await fetch('/api/fer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image_base64: base64Image }),

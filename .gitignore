@@ -76,3 +76,4 @@ template/customization/*
 .metro-health-check*
 # testing
 /coverage
+.vercel

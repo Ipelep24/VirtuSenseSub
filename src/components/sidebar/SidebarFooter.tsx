@@ -23,7 +23,7 @@ const SidebarFooter: React.FC = () => {
 
     return (
         <div className='flex justify-center items-center flex-col h-1/8 w-full'>
-            <div className="relative w-full h-full flex justify-center items-center p-2 gap-2 sm:gap-0 lg:gap-2 bg-[#2d2d2d] sm:bg-[#1d1d1d] lg:bg-[#2d2d2d] rounder-md">
+            <div className="relative w-full h-full flex justify-center items-center p-2 gap-2 sm:gap-0 lg:gap-2 bg-[#2d2d2d] sm:bg-[#1d1d1d] lg:bg-[#2d2d2d] rounded-md">
                 <div className="flex items-center gap-2">
                     <img
                         src={googleUser?.photoURL}

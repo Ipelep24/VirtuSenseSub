@@ -258,12 +258,13 @@ export default class RtcEngine {
   private emotionBatch: Array<{
     emotion: string;
     confidence: number;
-    timestamp: any;
+    timestamp: Timestamp;
   }> = [];
   private lastSavedEmotion: string | null = null;
   private batchInterval: NodeJS.Timeout | null = null;
-  private readonly BATCH_WRITE_INTERVAL = 10000; // Write every 10 seconds
-  private readonly MIN_CONFIDENCE_THRESHOLD = 50; // 50% confidence minimum
+  private readonly FER_CAPTURE_INTERVAL = 600; // 600ms = ~1.67 captures/sec (balance between accuracy and performance)
+  private readonly BATCH_WRITE_INTERVAL = 10000; // 10 seconds = reduce Firebase write costs while maintaining data freshness
+  private readonly MIN_CONFIDENCE_THRESHOLD = 50; // 50% = filter out uncertain detections
 
   initialize(context: RtcEngineContext) {
     const { appId } = context;
@@ -314,43 +315,29 @@ export default class RtcEngine {
   }
 
 
-  private checkFERState() {
-    const hasHosts = this.currentHostCount > 0;
+  private async checkFERState() {
+    // Add debouncing
+    if (this.ferCheckTimeout) {
+      clearTimeout(this.ferCheckTimeout);
+    }
 
-    console.log('🔍 RTCENGINE: Checking FER state:', {
-      isHost: this.isHost,
-      currentHostCount: this.currentHostCount,
-      hasHosts,
-      isVideoEnabled: this.isVideoEnabled,
-      ferRunning: !!this.ferInterval,
-    });
+    this.ferCheckTimeout = setTimeout(() => {
+      const hasHosts = this.currentHostCount > 0;
 
-    // Rule 1: If I'm a host, never run FER
-    if (this.isHost) {
-      if (this.ferInterval) {
-        console.log('⏹️ RTCENGINE: Stopping FER - user is host');
-        this.stopFER();
+      if (this.isHost) {
+        if (this.ferInterval) this.stopFER();
+        return;
       }
-      return;
-    }
 
-    // Rule 2: If I'm an attendee...
+      if ((!hasHosts || !this.isVideoEnabled) && this.ferInterval) {
+        this.stopFER();
+        return;
+      }
 
-    // Stop FER if: no hosts OR video disabled
-    if ((!hasHosts || !this.isVideoEnabled) && this.ferInterval) {
-      console.warn('⏸️ RTCENGINE: Stopping FER - conditions not met', {
-        hasHosts,
-        isVideoEnabled: this.isVideoEnabled,
-      });
-      this.stopFER();
-      return;
-    }
-
-    // Start FER if: hosts present AND video enabled AND not already running
-    if (hasHosts && this.isVideoEnabled && !this.ferInterval) {
-      console.log('▶️ RTCENGINE: Starting FER - all conditions met');
-      this.startFER();
-    }
+      if (hasHosts && this.isVideoEnabled && !this.ferInterval) {
+        this.startFER();
+      }
+    }, 300); // 300ms debounce
   }
 
   private startFER() {
@@ -464,7 +451,7 @@ export default class RtcEngine {
           console.error('FER Error:', err);
         }
       }
-    }, 600);
+    }, this.FER_CAPTURE_INTERVAL);
   }
 
   private stopFER() {
@@ -1897,6 +1884,11 @@ export default class RtcEngine {
 
     // Clean up FER monitoring completely
     this.cleanupFERMonitoring();
+
+    // ✅ Clear all intervals
+    if (this.ferInterval) clearInterval(this.ferInterval);
+    if (this.batchInterval) clearInterval(this.batchInterval);
+    if (this.ferCheckTimeout) clearTimeout(this.ferCheckTimeout);
 
     this.localStream.audio?.close();
     this.localStream.video?.close();

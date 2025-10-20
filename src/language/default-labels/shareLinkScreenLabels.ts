@@ -33,10 +33,10 @@ export const ShareLinkScreenLabels: I18nShareLinkScreenLabelsInterface = {
   [shareRoomAttendeeLinkLabel]: isWeb =>
     isWeb ? 'Attendee Link' : 'Attendee ID',
   [shareRoomAttendeeLinkSubText]:
-    'Share this with attendees you want to invite.',
+    'Share this link to invite attendees. Anyone invited through this will have their emotion tracked when their camera is enabled.',
   [shareRoomHostLinkLabel]: isWeb => (isWeb ? 'Host Link' : 'Host ID'),
   [shareRoomHostLinkSubText]:
-    'Share this with other co-hosts you want to invite.',
+    'Share this link to invite co-hosts. Anyone invited through this will be able to view emotion tracking data for this session.',
   [shareRoomPSTNLabel]: 'PSTN',
   [shareRoomPSTNNumberLabel]: 'Number',
   [shareRoomPSTNPinLabel]: 'Pin',

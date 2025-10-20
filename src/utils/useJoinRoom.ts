@@ -109,7 +109,6 @@ export default function useJoinRoom() {
       } else {
         if (response) {
           let data = response;
-          console.log('🔍 BACKEND RESPONSE:', JSON.stringify(data, null, 2));
           logger.log(
             LogSource.NetworkRest,
             `${isWaitingRoomEnabled ? 'channel_join_request' : 'joinChannel'}`,

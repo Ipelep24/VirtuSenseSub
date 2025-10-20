@@ -5,7 +5,10 @@ import {
   Clock,
   BarChart3,
   Calendar,
-  Smile
+  Smile,
+  Lightbulb,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
 import {
   PieChart,
@@ -18,12 +21,14 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  BarChart,
+  Bar
 } from 'recharts';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { Loading } from 'customization-api';
 import { SidebarLayout } from './layout/SidebarLayout';
+import RecordSkeleton from '../components/skeleton/RecordSkeleton';
 
 interface EmotionDetection {
   confidence: number;
@@ -67,6 +72,69 @@ const EMOTION_EMOJIS = {
   disgust: '🤢',
   surprise: '😮'
 };
+
+const ENGAGEMENT_TIPS = [
+  {
+    title: "Understanding Neutral Expressions",
+    content: "Neutral doesn't always mean disengaged. Students may appear neutral while deeply focused on problem-solving or critical thinking. Consider the context of your lesson."
+  },
+  {
+    title: "Fear vs. Concentration",
+    content: "Fear expressions can sometimes indicate intense concentration or cognitive challenge. If detected during complex topics, it might reflect mental effort rather than distress."
+  },
+  {
+    title: "Surprise Indicates Engagement",
+    content: "Surprise often signals moments of learning breakthroughs or unexpected discoveries. These are valuable indicators of engaged cognitive processing."
+  },
+  {
+    title: "About False Positives",
+    content: "The system detects facial muscle movements, which can be triggered by various factors. A yawn might register as surprise, or squinting at the screen as disgust. Always interpret data within context."
+  },
+  {
+    title: "Happiness Isn't Always Positive",
+    content: "While happiness often indicates enjoyment, it could also mean off-task socializing. Combine emotion data with other engagement metrics for full context."
+  },
+  {
+    title: "Mixed Emotions Are Normal",
+    content: "Students experiencing a variety of emotions during a session is healthy. Learning involves challenge (fear), discovery (surprise), and satisfaction (happiness)."
+  },
+  {
+    title: "Technical Limitations",
+    content: "Lighting conditions, camera angles, and individual facial expressions vary. The system provides trends, not definitive assessments of student wellbeing."
+  },
+  {
+    title: "Cultural Considerations",
+    content: "Facial expressions can vary across cultures. Students may express engagement differently. Use this data as one of many indicators, not the sole measure."
+  },
+  {
+    title: "Group Mood Can Be Contagious",
+    content: "One student’s reaction—like laughter or frustration—can influence others. This can shift the emotional tone of the whole group, even if the lesson hasn’t changed."
+  },
+  {
+    title: "Long Sessions Can Flatten Expressions",
+    content: "After a while, students may stop showing much on their faces—not because they’re bored, but because they’re tired. Keep this in mind during longer lessons."
+  },
+  {
+    title: "FER Doesn’t Know the Whole Story",
+    content: "Facial Emotion Recognition (FER) tools only see what’s on the surface. They don’t know if a student is tired, distracted by something off-screen, or just thinking deeply."
+  },
+  {
+    title: "Facial Data Isn't Emotion Proof",
+    content: "Just because a face looks a certain way doesn’t mean the student feels that way. Expressions can be misleading, so always check against what’s happening in the lesson."
+  },
+  {
+    title: "Students May Mask Emotions",
+    content: "Some students naturally keep a calm or blank face, even when they’re excited or confused. Don’t assume lack of expression means lack of interest."
+  },
+  {
+    title: "Short Expressions Can Be Missed",
+    content: "Quick flashes of emotion—like a brief smile or frown—might not be picked up by the system. These moments matter, but they’re easy to miss."
+  },
+  {
+    title: "About False Positives 2",
+    content: "Speaking while emotion tracking is active can trigger false readings. Movements like raised eyebrows, wide eyes, or stretched lips during speech might be misread as surprise, fear, or happiness. Always consider whether the student was talking when interpreting emotion data."
+  }
+];
 
 const CustomTooltip = ({ active = false, payload = [] } = {}) => {
   if (!active || !payload || !payload.length) return null;
@@ -112,7 +180,7 @@ const StatCard = ({ icon, label, value, sublabel = '' }) => (
 );
 
 const Records: React.FC & {
-    layout?: (page: React.ReactNode) => JSX.Element;
+  layout?: (page: React.ReactNode) => JSX.Element;
 } = () => {
   const SidebarIcon = BsReverseLayoutSidebarReverse as React.ComponentType<{ className?: string; onClick?: () => void }>;
   const [hoveringEmotion, setHoveringEmotion] = useState<string | null>(null);
@@ -120,6 +188,38 @@ const Records: React.FC & {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [tipIntervalId, setTipIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const startTipInterval = () => {
+    // Clear existing interval if any
+    if (tipIntervalId) {
+      clearInterval(tipIntervalId);
+    }
+
+    // Start new interval
+    const newInterval = setInterval(() => {
+      setCurrentTipIndex((prev) => (prev + 1) % ENGAGEMENT_TIPS.length);
+    }, 10000); // Change tip every 10 seconds
+
+    setTipIntervalId(newInterval);
+  };
+
+  const handleTipClick = (index: number) => {
+    setCurrentTipIndex(index);
+    startTipInterval(); // Reset the interval
+  };
+
+  useEffect(() => {
+    startTipInterval();
+
+    return () => {
+      if (tipIntervalId) {
+        clearInterval(tipIntervalId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -155,7 +255,7 @@ const Records: React.FC & {
           attendeesSnap.forEach(attendeeDoc => {
             const attendeeData = attendeeDoc.data();
             const emotions = attendeeData.emotions || [];
-            
+
             if (emotions.length === 0) return;
 
             attendees.push({
@@ -209,6 +309,7 @@ const Records: React.FC & {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching sessions:', error);
+        setError('Failed to load sessions. Please refresh the page.');
         setLoading(false);
       }
     };
@@ -232,7 +333,7 @@ const Records: React.FC & {
   };
 
   const aggregateAllEmotions = () => {
-    const emotionCounts: {[key: string]: number} = {};
+    const emotionCounts: { [key: string]: number } = {};
 
     sessions.forEach(session => {
       session.attendees.forEach(attendee => {
@@ -254,12 +355,86 @@ const Records: React.FC & {
       .sort((a, b) => b.value - a.value);
   };
 
+  const calculateEngagement = (emotionData: any[]) => {
+    const positive = emotionData.filter(e => ['happiness', 'surprise'].includes(e.name)).reduce((sum, e) => sum + e.value, 0);
+    const negative = emotionData.filter(e => ['sadness', 'anger', 'disgust', 'fear'].includes(e.name)).reduce((sum, e) => sum + e.value, 0);
+    const neutral = emotionData.filter(e => e.name === 'neutral').reduce((sum, e) => sum + e.value, 0);
+    const total = positive + negative + neutral;
+
+    return [
+      { name: 'Positive', value: positive, percent: total > 0 ? parseFloat(((positive / total) * 100).toFixed(1)) : 0, color: '#10b981' },
+      { name: 'Neutral', value: neutral, percent: total > 0 ? parseFloat(((neutral / total) * 100).toFixed(1)) : 0, color: '#6b7280' },
+      { name: 'Negative', value: negative, percent: total > 0 ? parseFloat(((negative / total) * 100).toFixed(1)) : 0, color: '#ef4444' }
+    ];
+  };
+
+  const generateRecommendations = (emotionData: any[]) => {
+    const engagement = calculateEngagement(emotionData);
+    const positivePercent = engagement.find(e => e.name === 'Positive')?.percent || 0;
+    const negativePercent = engagement.find(e => e.name === 'Negative')?.percent || 0;
+    const neutralPercent = engagement.find(e => e.name === 'Neutral')?.percent || 0;
+
+    const recommendations = [];
+
+    if (negativePercent > 40) {
+      recommendations.push({
+        type: 'concern',
+        title: 'High Negative Affect Detected',
+        message: 'Consider checking in with students about lesson difficulty. Break complex topics into smaller segments, or provide additional support resources.'
+      });
+    }
+
+    if (neutralPercent > 60) {
+      recommendations.push({
+        type: 'info',
+        title: 'Predominantly Neutral Expressions',
+        message: 'Students may be focused or disengaged. Try incorporating interactive elements, questions, or brief discussions to gauge true engagement levels.'
+      });
+    }
+
+    if (positivePercent > 50) {
+      recommendations.push({
+        type: 'success',
+        title: 'Strong Positive Engagement',
+        message: 'Great! Students appear engaged. Consider what teaching strategies worked well in this session to replicate in future lessons.'
+      });
+    }
+
+    const fearData = emotionData.find(e => e.name === 'fear');
+    if (fearData && fearData.percent > 20) {
+      recommendations.push({
+        type: 'warning',
+        title: 'Elevated Fear/Anxiety Indicators',
+        message: 'This could indicate challenging content or test anxiety. Provide reassurance, break down difficult concepts, and create a supportive learning environment.'
+      });
+    }
+
+    const sadnessData = emotionData.find(e => e.name === 'sadness');
+    if (sadnessData && sadnessData.percent > 25) {
+      recommendations.push({
+        type: 'concern',
+        title: 'Sadness Expressions Detected',
+        message: 'Students may be struggling or feeling overwhelmed. Consider adjusting pace, offering encouragement, or checking if external factors are affecting the class.'
+      });
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push({
+        type: 'success',
+        title: 'Balanced Emotional Climate',
+        message: 'Emotion patterns appear balanced. Continue monitoring trends and adapting your teaching approach based on student needs.'
+      });
+    }
+
+    return recommendations;
+  };
+
   const aggregateSessionEmotions = (sessionId: string | null) => {
     if (!sessionId) return [];
     const session = sessions.find(s => s.sessionID === sessionId);
     if (!session) return [];
 
-    const emotionCounts: {[key: string]: number} = {};
+    const emotionCounts: { [key: string]: number } = {};
     session.attendees.forEach(attendee => {
       attendee.emotions.forEach(emotion => {
         const emotionName = emotion.emotion.toLowerCase();
@@ -281,40 +456,25 @@ const Records: React.FC & {
   const createTimelineData = (sessionId: string | null) => {
     if (!sessionId) return [];
     const session = sessions.find(s => s.sessionID === sessionId);
-    if (!session) {
-      console.error('Session not found:', sessionId);
-      return [];
-    }
+    if (!session) return [];
 
-    if (!session.attendees || session.attendees.length === 0) {
-      console.error('No attendees in session');
-      return [];
-    }
+    if (!session.attendees || session.attendees.length === 0) return [];
 
     const sessionCreatedTime = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt);
 
-    const allEmotions: {emotion: string; timestamp: Date}[] = [];
+    const allEmotions: { emotion: string; timestamp: Date }[] = [];
     session.attendees.forEach(attendee => {
-      if (!attendee.emotions || attendee.emotions.length === 0) {
-        return;
-      }
-      
+      if (!attendee.emotions || attendee.emotions.length === 0) return;
+
       attendee.emotions.forEach(emotion => {
-        if (!emotion.timestamp) {
-          return;
-        }
-        
+        if (!emotion.timestamp) return;
+
         const timestamp = emotion.timestamp?.toDate ? emotion.timestamp.toDate() : new Date(emotion.timestamp);
         allEmotions.push({ emotion: emotion.emotion.toLowerCase(), timestamp });
       });
     });
 
-    console.log('All emotions:', allEmotions);
-
-    if (allEmotions.length === 0) {
-      console.error('No emotions found after processing');
-      return [];
-    }
+    if (allEmotions.length === 0) return [];
 
     allEmotions.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
@@ -324,7 +484,7 @@ const Records: React.FC & {
     const binCount = Math.max(1, Math.ceil(durationMinutes / 5));
 
     const bins: any[] = [];
-    
+
     for (let i = 0; i < binCount; i++) {
       const binStart = i * 5;
       const binEnd = (i + 1) * 5;
@@ -345,7 +505,6 @@ const Records: React.FC & {
       bins.push(binData);
     }
 
-    console.log('Timeline data:', bins);
     return bins;
   };
 
@@ -356,7 +515,18 @@ const Records: React.FC & {
 
   if (loading) {
     return (
-      <Loading text='Loading...'/>
+      <RecordSkeleton />
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='h-full w-full flex items-center justify-center text-white bg-[#1c1c1b]'>
+        <div className='text-center'>
+          <p className='text-red-400'>{error}</p>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
     );
   }
 
@@ -372,9 +542,14 @@ const Records: React.FC & {
 
   const overallStats = calculateOverallStats();
   const overallEmotionData = aggregateAllEmotions();
+  const overallEngagement = calculateEngagement(overallEmotionData);
+  const overallRecommendations = generateRecommendations(overallEmotionData);
   const selectedSession = sessions.find(s => s.sessionID === selectedSessionId);
   const sessionEmotionData = aggregateSessionEmotions(selectedSessionId);
+  const sessionEngagement = selectedSession ? calculateEngagement(sessionEmotionData) : [];
+  const sessionRecommendations = selectedSession ? generateRecommendations(sessionEmotionData) : [];
   const timelineData = createTimelineData(selectedSessionId);
+  const currentTip = ENGAGEMENT_TIPS[currentTipIndex];
 
   return (
     <div className='h-full w-full flex text-white relative overflow-hidden bg-[#1c1c1b]'>
@@ -413,6 +588,28 @@ const Records: React.FC & {
               <StatCard icon={<BarChart3 className='w-5 h-5' />} label="Total Emotion Records" value={overallStats.totalEmotionSamples} />
             </div>
 
+            {/* Tip Box */}
+            <div className='w-full bg-gradient-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
+              <div className='flex items-start gap-3'>
+                <Lightbulb className='w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5' />
+                <div className='flex-1'>
+                  <h3 className='font-semibold text-sm sm:text-base mb-1'>{currentTip.title}</h3>
+                  <p className='text-xs sm:text-sm text-gray-300 leading-relaxed'>{currentTip.content}</p>
+                </div>
+              </div>
+              <div className='flex gap-1 mt-3'>
+                {ENGAGEMENT_TIPS.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleTipClick(index)}
+                    className={`h-1 rounded-full flex-1 transition-all cursor-pointer ${index === currentTipIndex ? 'bg-[#1a7368]' : 'bg-gray-600 hover:bg-gray-500'
+                      }`}
+                    aria-label={`View tip ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 flex-1'>
               <div className='md:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[300px]'>
                 <div>
@@ -446,20 +643,27 @@ const Records: React.FC & {
               </div>
 
               <div className='bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[300px]'>
-                <h3 className='text-lg font-semibold mb-2'>Top Emotions</h3>
-                <p className='text-xs text-gray-400 mb-4'>Most frequently detected</p>
-                <div className='space-y-3 text-sm'>
-                  {overallEmotionData.slice(0, 7).map(item => (
+                <h3 className='text-lg font-semibold mb-2'>Engagement Assessment</h3>
+                <p className='text-xs text-gray-400 mb-4'>Grouped emotion indicators</p>
+                <div className='space-y-4 text-sm'>
+                  {overallEngagement.map(item => (
                     <div key={item.name}>
-                      <div className='flex justify-between mb-1'>
-                        <span>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
-                        <span className='text-gray-400'>{item.value} ({item.percent}%)</span>
+                      <div className='flex justify-between mb-2'>
+                        <span>{item.name}</span>
+                        <span className='text-gray-400'>{item.percent}%</span>
                       </div>
                       <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
-                        <div className='h-2 rounded-full' style={{ width: `${item.percent}%`, backgroundColor: EMOTION_COLORS[item.name as keyof typeof EMOTION_COLORS] }}></div>
+                        <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
                       </div>
                     </div>
                   ))}
+                  <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
+                    <p className='text-xs text-gray-500 leading-relaxed'>
+                      <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
+                      <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
+                      <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -481,6 +685,26 @@ const Records: React.FC & {
                   ))}
                 </div>
               </div>
+
+              {/* Recommendations Section */}
+              <div className='col-span-full bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[200px]'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <TrendingUp className='w-5 h-5 text-blue-400' />
+                  <h3 className='text-lg font-semibold'>Recommendations</h3>
+                </div>
+                <div className='space-y-3'>
+                  {overallRecommendations.map((rec, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${rec.type === 'success' ? 'bg-green-500/10 border-green-500/30' :
+                      rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                        rec.type === 'concern' ? 'bg-red-500/10 border-red-500/30' :
+                          'bg-blue-500/10 border-blue-500/30'
+                      }`}>
+                      <h4 className='font-semibold text-sm mb-2'>{rec.title}</h4>
+                      <p className='text-xs text-gray-300 leading-relaxed'>{rec.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </>
         ) : (
@@ -497,6 +721,24 @@ const Records: React.FC & {
               />
             </div>
 
+            {/* Session Tip Box */}
+            <div className='w-full bg-gradient-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
+              <div className='flex items-start gap-3'>
+                <AlertCircle className='w-5 h-5 text-[#1a7368] flex-shrink-0 mt-0.5' />
+                <div className='flex-1'>
+                  <h3 className='font-semibold text-sm sm:text-base mb-1'>Session Context</h3>
+                  <p className='text-xs sm:text-sm text-gray-300 leading-relaxed'>
+                    This data represents facial expression patterns during the session. Remember that context matters—
+                    {sessionEngagement.find(e => e.name === 'Neutral')?.percent > 50
+                      ? " high neutral expressions may indicate focused concentration rather than disengagement."
+                      : sessionEngagement.find(e => e.name === 'Negative')?.percent > 30
+                        ? " elevated negative indicators could reflect challenging content or technical difficulties."
+                        : " the emotion patterns suggest active engagement with varied responses."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className='grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 flex-1'>
               <div className='lg:col-span-4 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[300px]'>
                 <div>
@@ -510,70 +752,70 @@ const Records: React.FC & {
                       <XAxis dataKey="time" stroke="#9ca3af" style={{ fontSize: '12px' }} />
                       <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend 
+                      <Legend
                         wrapperStyle={{ fontSize: '12px' }}
                         onMouseEnter={(e) => setHoveringEmotion(String(e.dataKey))}
                         onMouseLeave={() => setHoveringEmotion(null)}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="happiness" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.happiness} 
+                      <Area
+                        type="monotone"
+                        dataKey="happiness"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.happiness}
                         fill={EMOTION_COLORS.happiness}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="neutral" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.neutral} 
+                      <Area
+                        type="monotone"
+                        dataKey="neutral"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.neutral}
                         fill={EMOTION_COLORS.neutral}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="fear" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.fear} 
+                      <Area
+                        type="monotone"
+                        dataKey="fear"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.fear}
                         fill={EMOTION_COLORS.fear}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="surprise" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.surprise} 
+                      <Area
+                        type="monotone"
+                        dataKey="surprise"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.surprise}
                         fill={EMOTION_COLORS.surprise}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="sadness" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.sadness} 
+                      <Area
+                        type="monotone"
+                        dataKey="sadness"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.sadness}
                         fill={EMOTION_COLORS.sadness}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="anger" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.anger} 
+                      <Area
+                        type="monotone"
+                        dataKey="anger"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.anger}
                         fill={EMOTION_COLORS.anger}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 0.8 : 0.2}
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="disgust" 
-                        stackId="1" 
-                        stroke={EMOTION_COLORS.disgust} 
+                      <Area
+                        type="monotone"
+                        dataKey="disgust"
+                        stackId="1"
+                        stroke={EMOTION_COLORS.disgust}
                         fill={EMOTION_COLORS.disgust}
                         strokeOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 1 : 0.3}
                         fillOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 0.8 : 0.2}
@@ -585,6 +827,32 @@ const Records: React.FC & {
                 )}
               </div>
 
+              {/* Session Engagement Assessment */}
+              <div className='lg:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[250px]'>
+                <h3 className='text-sm font-semibold mb-2'>Session Engagement</h3>
+                <p className='text-xs text-gray-400 mb-4'>Grouped emotion analysis</p>
+                <div className='space-y-3 text-sm'>
+                  {sessionEngagement.map(item => (
+                    <div key={item.name}>
+                      <div className='flex justify-between mb-2'>
+                        <span>{item.name}</span>
+                        <span className='text-gray-400'>{item.percent}%</span>
+                      </div>
+                      <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
+                        <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
+                    <p className='text-xs text-gray-500 leading-relaxed'>
+                      <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
+                      <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
+                      <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className='lg:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[250px]'>
                 <h3 className='text-lg font-semibold mb-2'>Session Distribution</h3>
                 <p className='text-xs text-gray-400 mb-4'>All detected emotions</p>
@@ -592,7 +860,7 @@ const Records: React.FC & {
                   {sessionEmotionData.map(item => (
                     <div key={item.name}>
                       <div className='flex justify-between mb-1'>
-                        <span>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
+                        <span className='capitalize'>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
                         <span className='text-gray-400'>{item.value} ({item.percent}%)</span>
                       </div>
                       <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
@@ -603,19 +871,21 @@ const Records: React.FC & {
                 </div>
               </div>
 
-              <div className='lg:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[250px]'>
-                <h3 className='text-lg font-semibold mb-2'>Avg Distribution</h3>
-                <p className='text-xs text-gray-400 mb-4'>Your overall average</p>
-                <div className='space-y-2 text-sm'>
-                  {overallEmotionData.slice(0, 7).map(item => (
-                    <div key={item.name}>
-                      <div className='flex justify-between mb-1'>
-                        <span>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
-                        <span className='text-gray-400'>{item.percent}%</span>
-                      </div>
-                      <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
-                        <div className='h-2 rounded-full' style={{ width: `${item.percent}%`, backgroundColor: EMOTION_COLORS[item.name as keyof typeof EMOTION_COLORS] }}></div>
-                      </div>
+              {/* Session Recommendations */}
+              <div className='lg:col-span-4 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[200px]'>
+                <div className='flex items-center gap-2 mb-4'>
+                  <TrendingUp className='w-5 h-5 text-blue-400' />
+                  <h3 className='text-lg font-semibold'>Session Insights</h3>
+                </div>
+                <div className='space-y-3'>
+                  {sessionRecommendations.map((rec, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${rec.type === 'success' ? 'bg-green-500/10 border-green-500/30' :
+                      rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                        rec.type === 'concern' ? 'bg-red-500/10 border-red-500/30' :
+                          'bg-blue-500/10 border-blue-500/30'
+                      }`}>
+                      <h4 className='font-semibold text-sm mb-2'>{rec.title}</h4>
+                      <p className='text-xs text-gray-300 leading-relaxed'>{rec.message}</p>
                     </div>
                   ))}
                 </div>
@@ -629,7 +899,7 @@ const Records: React.FC & {
                     <>
                       {(() => {
                         const emotionPeaks = sessionEmotionData.slice(0, 3);
-                        return emotionPeaks.map((emotionItem, index) => {
+                        return emotionPeaks.map((emotionItem) => {
                           const peakBin = timelineData.reduce((max: any, item: any) => {
                             const currentCount = item[emotionItem.name] || 0;
                             const maxCount = max[emotionItem.name] || 0;
@@ -639,7 +909,7 @@ const Records: React.FC & {
                           return (
                             <div key={emotionItem.name} className='p-3 bg-[#2d2d2d] rounded-lg'>
                               <p className='text-xs text-gray-500 mb-1 capitalize'>
-                                {emotionItem.name}
+                                {EMOTION_EMOJIS[emotionItem.name as keyof typeof EMOTION_EMOJIS]} {emotionItem.name}
                               </p>
                               <p className='font-medium'>{peakBin.time}</p>
                               <p className='text-xs text-gray-400 mt-1'>{peakBin[emotionItem.name] || 0} detections</p>
@@ -651,9 +921,7 @@ const Records: React.FC & {
                         <>
                           {Array(3 - sessionEmotionData.length).fill(null).map((_, i) => (
                             <div key={`empty-${i}`} className='p-3 bg-[#2d2d2d] rounded-lg'>
-                              <p className='text-xs text-gray-500 mb-1'>
-                                {sessionEmotionData.length + i + 1}. --
-                              </p>
+                              <p className='text-xs text-gray-500 mb-1'>--</p>
                               <p className='font-medium'>--</p>
                               <p className='text-xs text-gray-400 mt-1'>N/A</p>
                             </div>
@@ -680,9 +948,8 @@ const Records: React.FC & {
         </button>
 
         <div
-          className={`h-full bg-[#1d1d1d] border-l border-[#2d2d2d] transition-all duration-300 ease-in-out ${
-            isOpen ? 'w-60' : 'w-0'
-          } overflow-hidden shadow-2xl sm:shadow-none`}
+          className={`h-full bg-[#1d1d1d] border-l border-[#2d2d2d] transition-all duration-300 ease-in-out ${isOpen ? 'w-60' : 'w-0'
+            } overflow-hidden shadow-2xl sm:shadow-none`}
         >
           <div className='p-4 sm:p-6 h-full overflow-auto'>
             <h3 className='text-lg font-semibold mb-4'>Your Sessions</h3>
@@ -694,11 +961,10 @@ const Records: React.FC & {
                     setSelectedSessionId(session.sessionID);
                     setIsOpen(false);
                   }}
-                  className={`p-3 rounded-lg cursor-pointer transition ${
-                    selectedSessionId === session.sessionID
-                      ? 'bg-[#3d3d3d] border border-blue-500/30'
-                      : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
-                  }`}
+                  className={`p-3 rounded-lg cursor-pointer transition ${selectedSessionId === session.sessionID
+                    ? 'bg-[#3d3d3d] border border-blue-500/30'
+                    : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
+                    }`}
                 >
                   <p className='font-medium text-sm'>{session.meetingTitle}</p>
                   <p className='text-xs text-gray-400 mt-1'>{formatDate(session.createdAt)}</p>
@@ -716,5 +982,5 @@ const Records: React.FC & {
   );
 };
 
-Records.layout = (page) => <SidebarLayout>{page}</SidebarLayout>
+Records.layout = (page) => <SidebarLayout>{page}</SidebarLayout>;
 export default Records;

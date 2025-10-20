@@ -17,6 +17,7 @@ import { useIsRecordingBot } from './subComponents/recording/useIsRecordingBot';
 import { isValidReactComponent } from './utils/common';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ErrorBoundaryFallback } from './components/ErrorBoundaryFallback';
+import Endcall from './pages/Endcall';
 
 function VideoCallWrapper(props) {
   const { isRecordingBot } = useIsRecordingBot();
@@ -97,6 +98,10 @@ function AppRoutes() {
 
       <AuthRoute path="/create">
         <Create />
+      </AuthRoute>
+
+      <AuthRoute exact path="/endcall">
+        <Endcall />
       </AuthRoute>
 
       <Route exact path="/authorize/:token?">

@@ -68,6 +68,7 @@
     "agora-rtc-sdk-ng": "4.23.4",
     "agora-rtm-sdk": "1.5.1",
     "buffer": "^6.0.3",
+    "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "electron-log": "4.3.5",
     "electron-squirrel-startup": "1.0.0",
@@ -121,6 +122,7 @@
     "recharts": "^3.2.1",
     "rn-emoji-keyboard": "^1.7.0",
     "rn-fetch-blob": "0.12.0",
+    "tailwind-merge": "^3.3.1",
     "text-encoding": "^0.7.0",
     "white-web-sdk": "2.16.42"
   },

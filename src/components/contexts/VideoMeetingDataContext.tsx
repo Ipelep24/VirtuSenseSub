@@ -104,18 +104,6 @@ const VideoMeetingDataProvider = (props: VideoMeetingDataProviderProps) => {
     const filteredHosts = hostUids.filter((i) => activeUids.includes(i));
     const filteredAttendees = attendeeUids.filter((i) => activeUids.includes(i));
 
-    console.log('📊 VideoMeetingData Debug Snapshot:', {
-      isHost,
-      localUid,
-      rawHostUids: hostUids,
-      rawAttendeeUids: attendeeUids,
-      activeUids,
-      filteredHostUids: filteredHosts,
-      filteredAttendeeUids: filteredAttendees,
-      totalHosts: filteredHosts.length,
-      totalAttendees: filteredAttendees.length,
-    });
-
     localStorage.setItem('totalHosts', String(filteredHosts.length));
     localStorage.setItem('totalAttendees', String(filteredAttendees.length));
 

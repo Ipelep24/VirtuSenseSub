@@ -1,16 +1,16 @@
-import React, {useContext, useEffect, useState} from 'react';
-import {StyleSheet, View, Text, Platform} from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { StyleSheet, View, Text, Platform } from 'react-native';
 import PrimaryButton from '../atoms/PrimaryButton';
 import TertiaryButton from '../atoms/TertiaryButton';
 import Spacer from '../atoms/Spacer';
-import {Logo} from '../components/common';
-import {useHistory} from '../components/Router';
+import { Logo } from '../components/common';
+import { useHistory } from '../components/Router';
 import StorageContext from '../components/StorageContext';
 import ThemeConfig from '../theme';
 import ReactNativeForegroundService from '@supersami/rn-foreground-service';
 import CircularProgress from '../atoms/CircularProgress';
-import {useIsDesktop} from '../utils/common';
-import {logger, LogSource} from '../logger/AppBuilderLogger';
+import { useIsDesktop } from '../utils/common';
+import { logger, LogSource } from '../logger/AppBuilderLogger';
 
 /* For android only, bg audio */
 const StopForegroundService = () => {
@@ -29,7 +29,7 @@ const Endcall = () => {
   const rejoinBtnLabel = 'REJOIN';
   const createMeetingLabel = 'START NEW ROOM';
   const returnToHomeLabel = 'Returning to the home screen';
-  const {store} = useContext(StorageContext);
+  const { store } = useContext(StorageContext);
   const history = useHistory();
 
   const onComplete = React.useCallback(() => {
@@ -41,26 +41,37 @@ const Endcall = () => {
 
   const reJoin = () => {
     StopForegroundService();
+    history.goBack();
   };
   const goToCreate = () => {
-    history.push('/');
     StopForegroundService();
+    history.push('/create');
   };
+
+  useEffect(() => {
+    const allowed = sessionStorage.getItem('allowEndCall');
+    if (allowed !== 'true') {
+      history.push('/');
+    } else {
+      sessionStorage.removeItem('allowEndCall'); // 👈 optional: clear after use
+    }
+  }, []);
+
   return (
     <View style={styles.main}>
       <View
         style={[
           styles.contentContainer,
-          isDesktop() && {alignItems: 'center'},
+          isDesktop() && { alignItems: 'center' },
         ]}>
-        <View style={{alignSelf: 'center'}}>
+        <View style={{ alignSelf: 'center' }}>
           <Logo />
         </View>
         <Spacer size={20} />
         <Text
           style={[
             styles.heading,
-            !isDesktop() && {fontSize: 20, lineHeight: 25},
+            !isDesktop() && { fontSize: 20, lineHeight: 25 },
           ]}>
           {leftMeetingLabel}
         </Text>
@@ -98,6 +109,7 @@ const Endcall = () => {
             }}
           />
         </View>
+        <p className='my-4 text-center text-gray-400 cursor-pointer' onClick={() => {history.push('/')}}>Return to Home</p>
       </View>
       <View style={styles.bottomContainer}>
         <CircularProgress onComplete={onComplete} timer={60} />

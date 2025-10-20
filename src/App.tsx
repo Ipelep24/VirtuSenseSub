@@ -15,6 +15,7 @@ import { isWebInternal } from './utils/common';
 import LocalEventEmitter, { LocalEventsEnum } from './rtm-events-api/LocalEvents';
 import { AuthProvider } from './pages/auth/AuthContext';
 import { useHistory } from 'react-router-dom';
+import faviconSrc from './assets/logo.png'
 
 // hook can't be used in the outside react function calls. so directly checking the platform.
 if (Platform.OS === 'ios') {
@@ -128,6 +129,14 @@ const App: React.FC = () => {
 
   const [roomInfo, setRoomInfo] =
     useState<RoomInfoContextInterface>(RoomInfoDefaultValue);
+
+  useEffect(() => {
+    const favicon = document.querySelector("link[rel='icon']") || document.createElement("link")
+    favicon.setAttribute("rel", "icon")
+    favicon.setAttribute("type", "image/png")
+    favicon.setAttribute("href", faviconSrc) // ✅ uses imported path
+    document.head.appendChild(favicon)
+  }, [])
 
   return (
     <AppWrapper>

@@ -76,7 +76,7 @@ export const CreateScreenLabels: I18nCreateScreenLabelsInterface = {
   [createRoomInputPlaceholderText]: 'The Annual Galactic Meet',
   [createRoomMakeEveryOneCoHost]: 'Make everyone a Co-Host',
   [createRoomMakeEveryOneCoHostTooltipText]:
-    'Turning on will give everyone the control of this room',
+    'Enabling this will allow all participants to control the room. Emotion tracking will be disabled.',
   [createRoomAllowPhoneNumberJoining]: 'Allow joining via a phone number',
   [createRoomAllowPhoneNumberJoiningTooltipText]:
     'Attendees can dial a number and join via PSTN',
@@ -98,5 +98,5 @@ export const CreateScreenLabels: I18nCreateScreenLabelsInterface = {
   [createRoomJoinWithID]: 'Join with a room ID',
   [createRoomSuccessToastHeading]: (meetingName: string) =>
     `${meetingName}  has been created`,
-  [createRoomSuccessToastSubHeading]: 'Your New room is now live',
+  [createRoomSuccessToastSubHeading]: 'Your new room is now live',
 };

@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { useAuth } from '../auth/AuthProvider';
 import { useHistory } from '../components/Router';
 import googleIcon from '../assets/google.png'
+import virtuSense from '../assets/logo.png'
 
 const Auth = () => {
   const { setIsAuthenticated } = useAuth();
@@ -42,20 +43,20 @@ const Auth = () => {
 
   return (
     <div className='flex w-screen h-screen gap-10 flex-col items-center justify-center text-white'>
-      <div className='aspect-[5/3] w-100 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
+      <div className='aspect-[5/3] w-9/10 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
         <div className='w-[80%] justify-start flex gap-2 items-center'>
           <img
-            src='/logo.png'
+            src={virtuSense}
             alt='logo'
             width={40}
             height={40}
-            className='w-10 h-auto object-contain'
+            className='w-8 h-auto object-contain'
           />
           <h1 className='text-xl'>VirtuSense</h1>
         </div>
-        <p className='text-white text-xl font-bold'>Sign in to Continue</p>
+        <p className='text-white text-lg md:text-xl font-bold'>Sign in to Continue</p>
         <div
-          className='flex justify-center items-center gap-4 hover:bg-[#165b53] bg-[#1a7368] text-lg w-[80%] p-3 rounded-md cursor-pointer'
+          className='flex justify-center items-center gap-4 hover:bg-[#165b53] bg-[#1a7368] text-base md:text-lg w-[80%] p-3 rounded-md cursor-pointer'
           onClick={handleGoogleLogin}
         >
           <img
@@ -63,9 +64,9 @@ const Auth = () => {
             alt="logo"
             width={40}
             height={40}
-            className='w-7 h-auto object-contain'
+            className='w-5 md:w-7 h-auto object-contain'
           />
-          <p>{user ? `Continue as ${user.displayName}` : 'Sign In'}</p>
+          <p className='truncate'>{user ? `Continue as ${user.displayName}` : 'Sign In'}</p>
         </div>
       </div>
     </div>

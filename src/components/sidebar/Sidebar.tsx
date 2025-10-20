@@ -3,12 +3,7 @@ import { useLocation } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
 import SidebarFooter from './SidebarFooter';
 import { IoIosMenu, IoIosClose } from "react-icons/io";
-
-type NavItem = {
-  label: string;
-  path: string;
-  icon: React.ComponentType<{ className?: string }>;
-};
+import virtuSense from '../../assets/logo.png'
 
 const Sidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -26,14 +21,14 @@ const Sidebar: React.FC = () => {
     <>
       {/* Mobile Navigation Bar */}
       <nav className='relative flex justify-between items-center h-1/8 sm:hidden p-2 px-4 bg-[#1d1d1d] text-white border border-[#2d2d2d]'>
-        <div className='flex'>
-          {/* <img
-            src="/logo.png"
+        <div className='flex justify-center items-center'>
+          <img
+            src={virtuSense}
             alt="Logo"
             width={100}
             height={100}
-            className='w-10 h-auto'
-          /> */}
+            className='w-7 h-auto'
+          />
           <h1 className='text-xl font-semibold gap-2 p-2'>VirtuSense</h1>
         </div>
         <MenuIcon
@@ -65,12 +60,6 @@ const Sidebar: React.FC = () => {
           </div>
 
           {/* Logo */}
-          <div className="w-full mb-8">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold">VirtuSense</h1>
-            </div>
-          </div>
-
           <SidebarMenu />
           <SidebarFooter />
         </nav>
@@ -79,15 +68,15 @@ const Sidebar: React.FC = () => {
       {/* Desktop Sidebar */}
       <nav className="hidden h-full sm:flex flex-col p-2 text-white bg-[#1d1d1d] border border-[#2d2d2d]">
         <div className='w-full h-1/8'>
-          <div className='flex items-center justify-center'>
-            {/* <img
-              src="/logo.png"
+          <div className='flex items-center justify-center py-2 gap-2'>
+            <img
+              src={virtuSense}
               alt="Logo"
               width={100}
               height={100}
-              className='w-10 h-auto'
-            /> */}
-            <h1 className='hidden lg:block text-xl font-semibold gap-2 p-2'>VirtuSense</h1>
+              className='w-auto h-7'
+            />
+            <h1 className='hidden lg:block text-xl font-semibold'>VirtuSense</h1>
           </div>
         </div>
         <SidebarMenu />

@@ -25,17 +25,13 @@ const SidebarMenu: React.FC = () => {
                 {navItems.map(({ label, path, icon: Icon }) => {
                     const isActive = location.pathname === path
                     return (
-                        <li key={label}>
-                            <button
-                                onClick={() => history.push(path)}
-                                className={`w-full flex items-center sm:justify-center lg:justify-start gap-3 sm:gap-0 lg:gap-3 px-3 py-2 rounder-md transition-colors cursor-pointer ${isActive
-                                        ? 'text-[#2dc8b5] font-semibold'
-                                        : 'text-gray-400 hover:text-gray-300'
-                                    }`}
-                            >
-                                <Icon className="w-5 h-5" />
-                                <span className='block sm:hidden lg:block'>{label}</span>
-                            </button>
+                        <li key={label} onClick={() => history.push(path)}
+                            className={`w-full flex items-center sm:justify-center lg:justify-start gap-3 sm:gap-0 lg:gap-3 px-3 py-2 rounder-md transition-colors cursor-pointer ${isActive
+                                ? 'text-[#2dc8b5] font-semibold'
+                                : 'text-gray-400 hover:text-gray-300'
+                                }`}>
+                            <Icon className="w-5 h-5" />
+                            <span className='block sm:hidden lg:block'>{label}</span>
                         </li>
                     )
                 })}

@@ -87,7 +87,6 @@ enum RnEncryptionEnum {
 }
 
 const VideoCall: React.FC = () => {
-  console.log('🎬 VideoCall component rendered');
   const hasBrandLogo = useHasBrandLogo();
   const joiningLoaderLabel = useString(videoRoomStartingCallText)();
   const bannedUserText = useString(userBannedText)();
@@ -362,12 +361,13 @@ const VideoCall: React.FC = () => {
   const callbacks: CallbacksInterface = {
     EndCall: () => {
       clearState('join');
+      sessionStorage.setItem('allowEndCall', 'true');
       setTimeout(() => {
         SDKEvents.emit('leave');
         if (afterEndCall) {
           afterEndCall(roomData?.isHost, history as unknown as History);
         } else {
-          history.push('/');
+          history.push('/endcall');
         }
       }, 0);
     },

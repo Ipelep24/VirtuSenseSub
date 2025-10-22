@@ -36,6 +36,7 @@ import {
 } from '../../../src/app-state/useVideoQuality';
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../../src/firebase';
+import Toast from '../../../react-native-toast-message';
 
 interface MediaDeviceInfo {
   readonly deviceId: string;
@@ -266,6 +267,20 @@ export default class RtcEngine {
   private readonly BATCH_WRITE_INTERVAL = 10000; // 10 seconds = reduce Firebase write costs while maintaining data freshness
   private readonly MIN_CONFIDENCE_THRESHOLD = 50; // 50% = filter out uncertain detections
 
+  private hostAbsentTimer: NodeJS.Timeout | null = null;
+  private readonly HOST_ABSENT_GRACE_PERIOD = 30000; // 30 seconds
+
+  private sessionStartTime: Timestamp | null = null;
+  private sessionCheckInterval: NodeJS.Timeout | null = null;
+  private readonly MAX_SESSION_DURATION = 3600000; //
+
+  private navigateCallback: ((path: string) => void) | null = null;
+
+  // 🆕 Add this method
+  setNavigateCallback(callback: (path: string) => void) {
+    this.navigateCallback = callback;
+  }
+
   initialize(context: RtcEngineContext) {
     const { appId } = context;
     logger.log(LogSource.AgoraSDK, 'Log', 'RTC engine initialized');
@@ -323,6 +338,46 @@ export default class RtcEngine {
 
     this.ferCheckTimeout = setTimeout(() => {
       const hasHosts = this.currentHostCount > 0;
+
+      if (!hasHosts && !this.isHost && this.isJoined) {
+        // Start grace period timer
+        if (!this.hostAbsentTimer) {
+          Toast.show({
+            leadingIconName: 'warning',
+            type: 'warn',
+            text1: 'All hosts have exited the channel.',
+            text2: 'You will be automatically disconnected in 30 seconds unless a host rejoins.',
+            visibilityTime: 5000,
+            primaryBtn: null,
+            secondaryBtn: null,
+            leadingIcon: null,
+          });
+
+          window.dispatchEvent(new CustomEvent('meeting:hostGracePeriod', {
+            detail: { seconds: 30 }
+          }));
+
+          this.hostAbsentTimer = setTimeout(async () => {
+            console.log('⏱️ Grace period expired - disconnecting');
+            await this.leaveChannel();
+            sessionStorage.setItem('allowEndCall', 'true');
+
+            // 🆕 Use the callback if available
+            if (this.navigateCallback) {
+              this.navigateCallback('/endcall');
+            } else {
+              console.error('Navigate callback not set!');
+            }
+          }, this.HOST_ABSENT_GRACE_PERIOD);
+        }
+      } else if (hasHosts && this.hostAbsentTimer) {
+        // Host returned - cancel timer
+        console.log('✅ Host returned - canceling disconnect timer');
+        clearTimeout(this.hostAbsentTimer);
+        this.hostAbsentTimer = null;
+
+        window.dispatchEvent(new CustomEvent('meeting:hostReturned'));
+      }
 
       if (this.isHost) {
         if (this.ferInterval) this.stopFER();
@@ -973,12 +1028,23 @@ export default class RtcEngine {
 
       if (!sessionSnap.exists()) {
         // Create new session document
+        const createdAt = serverTimestamp();
         await setDoc(sessionRef, {
           meetingTitle: this.meetingTitle || 'Untitled Meeting',
           sessionID: this.sessionId,
-          createdAt: serverTimestamp(),
+          createdAt: createdAt,
         });
+
+        // Store the creation time locally
+        this.sessionStartTime = Timestamp.now();
+      } else {
+        // Get existing session start time
+        const sessionData = sessionSnap.data();
+        this.sessionStartTime = sessionData.createdAt;
       }
+
+      // Start monitoring session duration
+      this.startSessionTimeMonitoring();
 
       // Handle host logic
       if (this.isHost && this.userUID) {
@@ -986,6 +1052,80 @@ export default class RtcEngine {
       }
     } catch (error) {
       console.error('❌ Error creating/updating session:', error);
+    }
+  }
+
+  private startSessionTimeMonitoring() {
+    // Clear any existing interval
+    if (this.sessionCheckInterval) {
+      clearInterval(this.sessionCheckInterval);
+    }
+
+    // Check every minute (60 seconds)
+    this.sessionCheckInterval = setInterval(() => {
+      this.checkSessionExpiry();
+    }, 60000); // Check every 60 seconds
+
+    // Also check immediately
+    this.checkSessionExpiry();
+  }
+
+  // Add new method to check if session has expired
+  private async checkSessionExpiry() {
+    if (!this.sessionStartTime || !this.isJoined) {
+      return;
+    }
+
+    // Calculate elapsed time
+    const now = Timestamp.now();
+    const elapsedMs = (now.seconds - this.sessionStartTime.seconds) * 1000;
+
+    console.log(`⏱️ Session elapsed time: ${Math.floor(elapsedMs / 1000 / 60)} minutes`);
+
+    // Check if session has exceeded 1 hour
+    if (elapsedMs >= this.MAX_SESSION_DURATION) {
+      console.log('⏰ Session time limit reached (1 hour) - ending session');
+
+      // Show toast notification
+      Toast.show({
+        leadingIconName: 'info',
+        type: 'info',
+        text1: 'Session Time Limit Reached',
+        text2: 'This session has reached its 1-hour duration and will now end.',
+        visibilityTime: 5000,
+        primaryBtn: null,
+        secondaryBtn: null,
+        leadingIcon: null,
+      });
+
+      // Wait 3 seconds then disconnect
+      setTimeout(async () => {
+        await this.leaveChannel();
+        sessionStorage.setItem('allowEndCall', 'true');
+        sessionStorage.setItem('endCallReason', 'Session time limit reached (1 hour)');
+
+        // Use the callback if available
+        if (this.navigateCallback) {
+          this.navigateCallback('/endcall');
+        } else {
+          console.error('Navigate callback not set!');
+        }
+      }, 3000);
+    } else {
+      // Show warning at 50 minutes (10 minutes remaining)
+      const fiftyMinutes = 50 * 60 * 1000;
+      if (elapsedMs >= fiftyMinutes && elapsedMs < fiftyMinutes + 60000) {
+        Toast.show({
+          leadingIconName: 'info',
+          type: 'info',
+          text1: '10 Minutes Remaining',
+          text2: 'This session will end in 10 minutes.',
+          visibilityTime: 10000,
+          primaryBtn: null,
+          secondaryBtn: null,
+          leadingIcon: null,
+        });
+      }
     }
   }
 
@@ -1880,6 +2020,16 @@ export default class RtcEngine {
         stream?.video?.isPlaying && stream?.audio?.stop();
       });
       this.remoteStreams.clear();
+    }
+
+    if (this.hostAbsentTimer) {
+      clearTimeout(this.hostAbsentTimer);
+      this.hostAbsentTimer = null;
+    }
+
+    if (this.sessionCheckInterval) {
+      clearInterval(this.sessionCheckInterval);
+      this.sessionCheckInterval = null;
     }
 
     // Clean up FER monitoring completely

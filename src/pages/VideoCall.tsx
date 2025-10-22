@@ -172,6 +172,23 @@ const VideoCall: React.FC = () => {
   const history = useHistory();
   const currentMeetingPhrase = useRef(history.location.pathname);
 
+  useEffect(() => {
+    (window as any).__REACT_ROUTER_HISTORY__ = history;
+
+    if (window.engine && window.engine.setNavigateCallback) {
+      window.engine.setNavigateCallback((path: string) => {
+        history.push(path);
+      });
+    }
+
+    return () => {
+      delete (window as any).__REACT_ROUTER_HISTORY__;
+      if (window.engine && window.engine.setNavigateCallback) {
+        window.engine.setNavigateCallback(null);
+      }
+    };
+  }, [history]);
+
   const useJoin = useJoinRoom();
   const { setRoomInfo } = useSetRoomInfo();
   const { isJoinDataFetched, data: roomData, isInWaitingRoom, waitingRoomStatus } =

@@ -60,6 +60,16 @@ const Sidebar: React.FC = () => {
           </div>
 
           {/* Logo */}
+          <div className='h-1/8 flex items-center justify-start'>
+            <img
+              src={virtuSense}
+              alt="Logo"
+              width={100}
+              height={100}
+              className='w-7 h-auto'
+            />
+            <h1 className='text-lg font-normal gap-2 p-2'>VirtuSense</h1>
+          </div>
           <SidebarMenu />
           <SidebarFooter />
         </nav>

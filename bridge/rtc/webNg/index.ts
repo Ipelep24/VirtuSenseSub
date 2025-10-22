@@ -1,19 +1,26 @@
 import RtcEngine from './RtcEngine';
-export {default as RtcSurfaceView} from './RtcSurfaceView';
+export { default as RtcSurfaceView } from './RtcSurfaceView';
 
 import * as Types from './Types';
 
-export const VideoMirrorMode = {...Types.RenderModeType};
-export const RenderModeType = {...Types.RenderModeType};
+export const VideoMirrorMode = { ...Types.RenderModeType };
+export const RenderModeType = { ...Types.RenderModeType };
 
 export function createAgoraRtcEngine() {
   let engine = new RtcEngine();
   window.engine = engine;
+
+  if ((window as any).__REACT_ROUTER_HISTORY__) {
+    engine.setNavigateCallback((path: string) => {
+      (window as any).__REACT_ROUTER_HISTORY__.push(path);
+    });
+  }
+  
   return engine;
 }
 
-export {RnEncryptionEnum as EncryptionMode} from './RtcEngine';
-export {AREAS as AreaCode} from './RtcEngine';
+export { RnEncryptionEnum as EncryptionMode } from './RtcEngine';
+export { AREAS as AreaCode } from './RtcEngine';
 export type VideoEncoderConfiguration = any;
 export declare enum AudioScenario {
   /**

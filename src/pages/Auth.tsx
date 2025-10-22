@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useHistory } from '../components/Router';
 import googleIcon from '../assets/google.png'
 import virtuSense from '../assets/logo.png'
+import Toast from '../../react-native-toast-message';
 
 const Auth = () => {
   const { setIsAuthenticated } = useAuth();
@@ -36,8 +37,20 @@ const Auth = () => {
         history.push('/');
       }
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      Toast.show({
+        leadingIconName: 'alert',
+        type: 'error',
+        text1: 'Google Sign-in Error',
+        text2: error?.message || 'Something went wrong. Please try again.',
+        visibilityTime: 5000,
+        primaryBtn: null,
+        secondaryBtn: null,
+        leadingIcon: null,
+      });
       setIsAuthenticated(false);
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000); // Matches toast visibility
     }
   };
 

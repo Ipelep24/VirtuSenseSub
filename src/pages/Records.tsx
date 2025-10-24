@@ -8,7 +8,8 @@ import {
   Smile,
   Lightbulb,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
 import {
   PieChart,
@@ -191,6 +192,35 @@ const Records: React.FC & {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [tipIntervalId, setTipIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Add this useEffect for debouncing (place it with your other useEffects)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Add this filtered sessions logic before your return statement
+  const filteredSessions = sessions.filter(session => {
+    if (!debouncedQuery.trim()) return true;
+
+    const query = debouncedQuery.toLowerCase();
+    const titleMatch = session.meetingTitle.toLowerCase().includes(query);
+
+    // Search by date in various formats
+    const sessionDate = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt);
+    const dateStr = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toLowerCase();
+    const isoDate = sessionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateMatch = dateStr.includes(query) || isoDate.includes(query);
+
+    return titleMatch || dateMatch;
+  });
+
+  // Then in your sidebar JSX, replace the existing content with:
 
   const startTipInterval = () => {
     // Clear existing interval if any
@@ -951,29 +981,58 @@ const Records: React.FC & {
           className={`h-full bg-[#1d1d1d] border-l border-[#2d2d2d] transition-all duration-300 ease-in-out ${isOpen ? 'w-60' : 'w-0'
             } overflow-hidden shadow-2xl sm:shadow-none`}
         >
-          <div className='p-4 sm:p-6 h-full overflow-auto'>
-            <h3 className='text-lg font-semibold mb-4'>Your Sessions</h3>
-            <div className='space-y-2'>
-              {sessions.map(session => (
-                <div
-                  key={session.sessionID}
-                  onClick={() => {
-                    setSelectedSessionId(session.sessionID);
-                    setIsOpen(false);
-                  }}
-                  className={`p-3 rounded-lg cursor-pointer transition ${selectedSessionId === session.sessionID
-                    ? 'bg-[#3d3d3d] border border-blue-500/30'
-                    : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
-                    }`}
-                >
-                  <p className='font-medium text-sm'>{session.meetingTitle}</p>
-                  <p className='text-xs text-gray-400 mt-1'>{formatDate(session.createdAt)}</p>
-                  <div className='flex items-center justify-between mt-2 text-xs'>
-                    <span className='text-gray-500'>{session.participantCount} participants</span>
-                    <span className='px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400'>ended</span>
-                  </div>
+          <div className='p-4 sm:p-6 h-full flex flex-col'>
+            <div>
+              <h3 className='text-lg font-semibold mb-4'>Your Sessions</h3>
+
+              {/* Search Bar */}
+              <div className='mb-4 relative'>
+                <div className='relative'>
+                  <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
+                  <input
+                    type='text'
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder='Search'
+                    className='w-full bg-[#2d2d2d] border border-[#3d3d3d] rounded-lg pl-10 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#1a7368] transition'
+                  />
                 </div>
-              ))}
+                {searchQuery !== debouncedQuery && (
+                  <div className='absolute right-2 top-1/2 transform -translate-y-1/2'>
+                    <div className='w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin'></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sessions List - Only this scrolls */}
+            <div className='flex-1 overflow-y-auto space-y-2'>
+              {filteredSessions.length > 0 ? (
+                filteredSessions.map(session => (
+                  <div
+                    key={session.sessionID}
+                    onClick={() => {
+                      setSelectedSessionId(session.sessionID);
+                      setIsOpen(false);
+                    }}
+                    className={`p-3 rounded-lg cursor-pointer transition ${selectedSessionId === session.sessionID
+                        ? 'bg-[#1a7368]/50'
+                        : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
+                      }`}
+                  >
+                    <p className='font-medium text-sm'>{session.meetingTitle}</p>
+                    <p className='text-xs text-gray-400 mt-1'>{formatDate(session.createdAt)}</p>
+                    <div className='flex items-center justify-between mt-2 text-xs'>
+                      <span className='text-gray-500'>{session.participantCount} participants</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className='text-center py-8'>
+                  <p className='text-sm text-gray-500'>No sessions found</p>
+                  <p className='text-xs text-gray-600 mt-1'>Try a different search term</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -18,6 +18,8 @@ import { isValidReactComponent } from './utils/common';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ErrorBoundaryFallback } from './components/ErrorBoundaryFallback';
 import Endcall from './pages/Endcall';
+import TabLocked from './pages/TabLocked';
+import Troubleshooting from './pages/Troubleshooting';
 
 function VideoCallWrapper(props) {
   const { isRecordingBot } = useIsRecordingBot();
@@ -29,11 +31,9 @@ function VideoCallWrapper(props) {
       </ErrorBoundary>
     </RecordingBotRoute>
   ) : (
-    <AuthRoute>
-      <ErrorBoundary fallback={ErrorBoundaryFallbackComponent}>
-        <VideoCall />
-      </ErrorBoundary>
-    </AuthRoute>
+    <ErrorBoundary fallback={ErrorBoundaryFallbackComponent}>
+      <VideoCall />
+    </ErrorBoundary>
   );
 }
 
@@ -84,6 +84,14 @@ function AppRoutes() {
         <Auth />
       </Route>
 
+      <Route exact path="/tab-locked">
+        <TabLocked />
+      </Route>
+
+      <AuthRoute exact path="/submit-ticket">
+        <Troubleshooting />
+      </AuthRoute>
+
       <AuthRoute exact path="/">
         {renderWithLayout(Dashboard)}
       </AuthRoute>
@@ -96,7 +104,7 @@ function AppRoutes() {
         <Join />
       </AuthRoute>
 
-      <AuthRoute path="/create">
+      <AuthRoute exact path="/create">
         <Create />
       </AuthRoute>
 
@@ -110,7 +118,9 @@ function AppRoutes() {
 
       {RenderCustomRoutes()}
 
-      <Route exact path="/:phrase" component={VideoCallWrapper} />
+      <AuthRoute exact path="/:phrase">
+        <VideoCallWrapper />
+      </AuthRoute>
       <Route path="*">
         <Text>Page not found</Text>
       </Route>

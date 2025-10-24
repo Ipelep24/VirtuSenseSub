@@ -9,6 +9,7 @@ import { useString } from '../utils/useString';
 import {
   authAuthenticationFailedText,
   loadingText,
+  logoutText,
 } from '../language/default-labels/commonLabels';
 
 interface PrivateRouteProps extends RouteProps {
@@ -19,17 +20,18 @@ const AuthRoute: React.FC<PrivateRouteProps> = props => {
   const didMountRef = useRef(false);
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const loadingLabel = useString(loadingText)();
-  const failedtext = useString(authAuthenticationFailedText)();
+  const logout = useString(logoutText)();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       setIsSignedIn(!!user);
       if (didMountRef.current && !user) {
         Toast.show({
-          leadingIconName: 'alert',
-          type: 'error',
-          text1: failedtext,
-          visibilityTime: 1000,
+          leadingIconName: 'info',
+          type: 'info',
+          text1: logout,
+          text2: 'You have successfully logged out.',
+          visibilityTime: 2000,
         });
       }
       didMountRef.current = true;

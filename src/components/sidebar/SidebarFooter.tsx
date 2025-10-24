@@ -3,6 +3,7 @@ import { useAuth } from '../../pages/auth/AuthContext'
 import { RxExit } from "react-icons/rx";
 import { getAuth } from 'firebase/auth';
 import { useHistory } from 'react-router-dom';
+import Toast from '../../../react-native-toast-message';
 
 const SidebarFooter: React.FC = () => {
     const { googleUser } = useAuth()
@@ -12,10 +13,16 @@ const SidebarFooter: React.FC = () => {
     const handleLogout = async () => {
         try {
             const auth = getAuth();
-            await auth.signOut()
+            await auth.signOut();
             localStorage.setItem('firebaseLogout', Date.now().toString());
-
-            history.push('/auth')
+            history.push('/auth');
+            Toast.show({
+                leadingIconName: 'tick-fill',
+                type: 'success',
+                text1: 'Logged Out',
+                text2: `You've logged out!`,
+                visibilityTime: 3000,
+            })
         } catch (error) {
             console.error('Sign out error: ', error)
         }

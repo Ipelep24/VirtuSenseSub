@@ -1,8 +1,8 @@
-import React, {useContext} from 'react';
-import {Router} from './components/Router';
+import React, { useContext } from 'react';
+import { Router } from './components/Router';
 import Navigation from './components/Navigation';
-import {StorageProvider} from './components/StorageContext';
-import {SessionProvider} from './components/SessionContext';
+import { StorageProvider } from './components/StorageContext';
+import { SessionProvider } from './components/SessionContext';
 import {
   ImageBackground,
   SafeAreaView,
@@ -11,19 +11,20 @@ import {
   View,
 } from 'react-native';
 import ColorConfigure from './components/ColorConfigure';
-import {isValidReactComponent} from './utils/common';
+import { isValidReactComponent } from './utils/common';
 import DimensionProvider from './components/dimension/DimensionProvider';
 import Error from './components/common/Error';
-import {ErrorProvider} from './components/common';
-import {useCustomization} from 'customization-implementation';
-import {LanguageProvider} from './language/useLanguage';
-import {AuthProvider} from './auth/AuthProvider';
-import {PropsConsumer} from 'agora-rn-uikit';
+import { ErrorProvider } from './components/common';
+import { useCustomization } from 'customization-implementation';
+import { LanguageProvider } from './language/useLanguage';
+import { AuthProvider } from './auth/AuthProvider';
+import { PropsConsumer } from 'agora-rn-uikit';
 import ToastComponent from './components/ToastComponent';
-import {ToastContext, ToastProvider} from './components/useToast';
-import {SdkApiContext} from './components/SdkApiContext';
+import { ToastContext, ToastProvider } from './components/useToast';
+import { SdkApiContext } from './components/SdkApiContext';
 import isSDK from './utils/isSDK';
 import BlockUI from './subComponents/BlockUI';
+import SingleSessionEnforcer from './components/SingleSessionEnforcer';
 
 interface AppWrapperProps {
   children: React.ReactNode;
@@ -37,15 +38,15 @@ const ImageBackgroundComp = (props: {
   if (props?.bg) {
     return (
       <ImageBackground
-        source={{uri: props.bg}}
-        style={{flex: 1}}
+        source={{ uri: props.bg }}
+        style={{ flex: 1 }}
         resizeMode={'cover'}>
         {props.children}
       </ImageBackground>
     );
   } else if (props?.color) {
     return (
-      <View style={{flex: 1, backgroundColor: props.color}}>
+      <View style={{ flex: 1, backgroundColor: props.color }}>
         {props.children}
       </View>
     );
@@ -65,14 +66,14 @@ const AppWrapper = (props: AppWrapperProps) => {
     return React.Fragment;
   });
 
-  const {join: SdkJoinState} = useContext(SdkApiContext);
+  const { join: SdkJoinState } = useContext(SdkApiContext);
 
   return (
     <AppRoot>
       <ImageBackgroundComp bg={$config.BG} color={$config.BACKGROUND_COLOR}>
         <SafeAreaView
           // @ts-ignore textAlign not supported by TS definitions but is applied to web regardless
-          style={[{flex: 1}, Platform.select({web: {textAlign: 'left'}})]}>
+          style={[{ flex: 1 }, Platform.select({ web: { textAlign: 'left' } })]}>
           <StatusBar backgroundColor={$config.BACKGROUND_COLOR} />
           {$config.DISABLE_LANDSCAPE_MODE && <BlockUI />}
           <StorageProvider>
@@ -83,12 +84,13 @@ const AppWrapper = (props: AppWrapperProps) => {
                   //@ts-ignore
                   isSDK && SdkJoinState.phrase
                     ? //@ts-ignore
-                      `/${SdkJoinState.phrase}`
+                    `/${SdkJoinState.phrase}`
                     : '',
                 ]}>
+                <SingleSessionEnforcer />
                 <ToastProvider>
                   <ToastContext.Consumer>
-                    {({isActionSheetVisible}) => {
+                    {({ isActionSheetVisible }) => {
                       return !isActionSheetVisible ? <ToastComponent /> : null;
                     }}
                   </ToastContext.Consumer>

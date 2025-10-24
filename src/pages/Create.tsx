@@ -449,6 +449,7 @@ const Create = () => {
                     }}
                   />
                 </View>
+                <p className='text-center text-sm text-gray-500 hover:text-gray-400 my-2 cursor-pointer' onClick={() => {history.push('/submit-ticket')}}>Can't create or access video-conference?</p>
               </Card>
             </ScrollView>
           </View>

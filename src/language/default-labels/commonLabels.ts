@@ -47,7 +47,7 @@ export const CommonLabels: I18nCommonLabelsInterface = {
   [cancelText]: 'CANCEL',
   [loadingText]: 'Loading...',
   [initializingChatText]: 'Initializing Chat ...',
-  [logoutText]: 'Logout',
+  [logoutText]: 'Logged out',
   [authLogoutPopupHeading]: 'Logout?',
   [authLogoutPopupSubHeading]: 'Are you sure you wanna log out?',
   [authLogoutPopupPrimaryBtnText]: 'CONFIRM',

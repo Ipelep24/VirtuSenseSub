@@ -265,7 +265,7 @@ export default class RtcEngine {
   private batchInterval: NodeJS.Timeout | null = null;
   private readonly FER_CAPTURE_INTERVAL = 600; // 600ms = ~1.67 captures/sec (balance between accuracy and performance)
   private readonly BATCH_WRITE_INTERVAL = 10000; // 10 seconds = reduce Firebase write costs while maintaining data freshness
-  private readonly MIN_CONFIDENCE_THRESHOLD = 50; // 50% = filter out uncertain detections
+  private readonly MIN_CONFIDENCE_THRESHOLD = 75; // 75% = filter out uncertain detections
 
   private hostAbsentTimer: NodeJS.Timeout | null = null;
   private readonly HOST_ABSENT_GRACE_PERIOD = 30000; // 30 seconds

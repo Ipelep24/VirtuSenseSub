@@ -40,9 +40,6 @@ const SingleSessionEnforcer = () => {
     if (!tabId) {
       tabId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       sessionStorage.setItem('tabId', tabId);
-      console.log('🆔 Created new tab ID:', tabId);
-    } else {
-      console.log('🆔 Using existing tab ID:', tabId);
     }
     tabIdRef.current = tabId;
 
@@ -50,14 +47,6 @@ const SingleSessionEnforcer = () => {
     const existingTab = localStorage.getItem('activeTab');
     const existingTimestamp = parseInt(localStorage.getItem('activeTabTimestamp') || '0');
     const now = Date.now();
-
-    console.log('📊 Active tab check:', {
-      existingTab,
-      currentTab: tabId,
-      timeSinceUpdate: now - existingTimestamp,
-      isMatch: existingTab === tabId,
-      isLocked: isLockedRef.current
-    });
 
     // If there's a different active tab that's recent, LOCK this tab
     if (existingTab && existingTab !== tabId && (now - existingTimestamp) < 3000) {
@@ -79,7 +68,6 @@ const SingleSessionEnforcer = () => {
     }
 
     // Claim this tab as active
-    console.log('✅ Claiming active status for tab:', tabId);
     claimActiveTab(tabId);
 
     // Set up monitoring if not already done
@@ -206,7 +194,6 @@ const SingleSessionEnforcer = () => {
         if (currentTabId === activeTab) {
           localStorage.removeItem('activeTab');
           localStorage.removeItem('activeTabTimestamp');
-          console.log('🗑️ Cleared active tab status (tab closing)');
         }
       };
 

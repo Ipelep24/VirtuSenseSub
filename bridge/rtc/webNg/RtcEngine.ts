@@ -249,6 +249,7 @@ export default class RtcEngine {
   private usersVolumeLevel = [];
 
   private ferInterval: NodeJS.Timeout | null = null;
+  private ferCheckTimeout: NodeJS.Timeout | null = null;
   private currentHostCount: number = 0;
   private meetingTitle = '';
   private isHost = false;
@@ -396,32 +397,28 @@ export default class RtcEngine {
   }
 
   private startFER() {
-    // Safety check 1: Never run if host
+    // Safety checks (keep as-is)
     if (this.isHost) {
       console.log('⏭️ RTCENGINE: Skipping FER - local user is host');
       return;
     }
 
-    // Safety check 2: Must have hosts
     if (this.currentHostCount === 0) {
       console.warn('⏸️ RTCENGINE: Skipping FER - no hosts in session');
       return;
     }
 
-    // Safety check 3: Video must be enabled
     if (!this.isVideoEnabled) {
       console.warn('⏸️ RTCENGINE: Skipping FER - video disabled');
       return;
     }
 
-    // Safety check 4: Video track must be live
     const track = this.localStream.video?.getMediaStreamTrack();
     if (!track || track.readyState !== 'live') {
       console.warn('⏸️ RTCENGINE: FER skipped - video track not live');
       return;
     }
 
-    // Safety check 5: Don't start if already running
     if (this.ferInterval) {
       console.log('ℹ️ RTCENGINE: FER already running, skipping start');
       return;
@@ -429,35 +426,43 @@ export default class RtcEngine {
 
     console.log('▶️ RTCENGINE: Starting FER');
 
-    const imageCapture = new ImageCapture(track);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    // 🆕 Detect platform and choose best capture method
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isSafari = /safari/.test(userAgent) && !/chrome|crios|crmo/.test(userAgent);
+    const isFirefox = /firefox/.test(userAgent);
+
+    // Use ImageCapture for Android Chrome (faster), Video Element for iOS/Safari/Firefox
+    const useImageCapture = !isIOS && !isSafari && !isFirefox && typeof ImageCapture !== 'undefined';
+
+    console.log(`📱 Platform: iOS=${isIOS}, Safari=${isSafari}, Firefox=${isFirefox}, Method=${useImageCapture ? 'ImageCapture' : 'VideoElement'}`);
 
     // Start batch writing interval
     this.startEmotionBatchWriter();
 
+    if (useImageCapture) {
+      this.startFERWithImageCapture(track);
+    } else {
+      this.startFERWithVideoElement(track);
+    }
+  }
+
+  // 🆕 ImageCapture method (for Android Chrome)
+  private startFERWithImageCapture(track: MediaStreamTrack) {
+    console.log('📸 Starting FER with ImageCapture (Android Chrome)');
+
+    const imageCapture = new ImageCapture(track);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
     this.ferInterval = setInterval(async () => {
       try {
-        // Re-check conditions on every iteration
-        if (this.currentHostCount === 0) {
-          console.warn('⏸️ FER: No hosts detected, stopping');
+        if (!this.shouldContinueFER()) {
           this.stopFER();
           return;
         }
 
-        if (!this.isVideoEnabled) {
-          console.warn('⏸️ FER: Video disabled, stopping');
-          this.stopFER();
-          return;
-        }
-
-        const currentTrack = this.localStream.video?.getMediaStreamTrack();
-        if (!currentTrack || currentTrack.readyState !== 'live') {
-          console.warn('FER: Track no longer live, stopping interval');
-          this.stopFER();
-          return;
-        }
-
+        // Capture frame using ImageCapture API
         const bitmap = await imageCapture.grabFrame();
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
@@ -466,47 +471,139 @@ export default class RtcEngine {
         const imageData = canvas.toDataURL('image/jpeg', 0.6);
         const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
 
-        const response = await fetch('/api/fer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image_base64: base64Image }),
-        });
-
-        const result = await response.json();
-        const emotion = result.faces?.[0]?.attributes?.emotion;
-        if (emotion) {
-          // Find emotion with highest confidence
-          const highestEmotion = Object.entries(emotion).reduce((max, [emotionName, confidence]) => {
-            return (confidence as number) > max.confidence
-              ? { emotion: emotionName, confidence: confidence as number }
-              : max;
-          }, { emotion: '', confidence: 0 });
-
-          if (highestEmotion.confidence >= this.MIN_CONFIDENCE_THRESHOLD) {
-            // Only add to batch if emotion changed
-            if (highestEmotion.emotion !== this.lastSavedEmotion) {
-              // Convert to 0-1 decimal for storage (standardized format)
-              this.emotionBatch.push({
-                emotion: highestEmotion.emotion,
-                confidence: highestEmotion.confidence / 100, // ✅ Store as 0-1 decimal
-                timestamp: Timestamp.now(),
-              });
-
-              this.lastSavedEmotion = highestEmotion.emotion;
-            }
-          } else {
-            console.log(
-              `⚠️ Confidence too low: ${highestEmotion.emotion} ` +
-              `(${highestEmotion.confidence.toFixed(1)}%), skipping`
-            );
-          }
-        }
+        await this.processFERImage(base64Image);
       } catch (err) {
         if (err.name !== 'InvalidStateError') {
-          console.error('FER Error:', err);
+          console.error('FER Error (ImageCapture):', err);
+          // If ImageCapture fails, fall back to video element
+          console.warn('⚠️ ImageCapture failed, switching to Video Element');
+          this.stopFER();
+          this.startFERWithVideoElement(track);
         }
       }
     }, this.FER_CAPTURE_INTERVAL);
+  }
+
+  // 🆕 Video Element method (for iOS/Safari/Firefox)
+  private startFERWithVideoElement(track: MediaStreamTrack) {
+    console.log('📹 Starting FER with Video Element (iOS/Safari/Firefox)');
+
+    const video = document.createElement('video');
+    video.srcObject = new MediaStream([track]);
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', ''); // Extra insurance for iOS
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      console.log(`✅ FER Video ready: ${canvas.width}x${canvas.height}`);
+
+      this.ferInterval = setInterval(async () => {
+        try {
+          if (!this.shouldContinueFER()) {
+            this.stopFER();
+            video.srcObject = null;
+            return;
+          }
+
+          if (video.readyState < 2) {
+            return; // Skip this frame
+          }
+
+          ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = canvas.toDataURL('image/jpeg', 0.6);
+          const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
+
+          await this.processFERImage(base64Image);
+        } catch (err) {
+          if (err.name !== 'InvalidStateError' && err.name !== 'NS_ERROR_NOT_AVAILABLE') {
+            console.error('FER Error (Video Element):', err);
+          }
+        }
+      }, this.FER_CAPTURE_INTERVAL);
+    };
+
+    video.onerror = (e) => {
+      console.error('FER Video error:', e);
+      this.stopFER();
+    };
+
+    // iOS sometimes needs manual play() call
+    video.play().catch(e => console.warn('Video autoplay prevented:', e));
+  }
+
+  // Keep these helper methods unchanged
+  private shouldContinueFER(): boolean {
+    if (this.currentHostCount === 0) {
+      console.warn('⏸️ FER: No hosts detected, stopping');
+      return false;
+    }
+
+    if (!this.isVideoEnabled) {
+      console.warn('⏸️ FER: Video disabled, stopping');
+      return false;
+    }
+
+    const currentTrack = this.localStream.video?.getMediaStreamTrack();
+    if (!currentTrack || currentTrack.readyState !== 'live') {
+      console.warn('FER: Track no longer live, stopping');
+      return false;
+    }
+
+    return true;
+  }
+
+  private async processFERImage(base64Image: string) {
+    try {
+      const response = await fetch('/api/fer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: base64Image }),
+      });
+
+      // Handle API errors gracefully
+      if (!response.ok) {
+        console.warn(`⚠️ FER API returned ${response.status}, skipping frame`);
+        return;
+      }
+
+      const result = await response.json();
+      const emotion = result.faces?.[0]?.attributes?.emotion;
+
+      if (emotion) {
+        const highestEmotion = Object.entries(emotion).reduce((max, [emotionName, confidence]) => {
+          return (confidence as number) > max.confidence
+            ? { emotion: emotionName, confidence: confidence as number }
+            : max;
+        }, { emotion: '', confidence: 0 });
+
+        if (highestEmotion.confidence >= this.MIN_CONFIDENCE_THRESHOLD) {
+          if (highestEmotion.emotion !== this.lastSavedEmotion) {
+            this.emotionBatch.push({
+              emotion: highestEmotion.emotion,
+              confidence: highestEmotion.confidence / 100,
+              timestamp: Timestamp.now(),
+            });
+
+            this.lastSavedEmotion = highestEmotion.emotion;
+          }
+        } else {
+          console.log(
+            `⚠️ Confidence too low: ${highestEmotion.emotion} ` +
+            `(${highestEmotion.confidence.toFixed(1)}%), skipping`
+          );
+        }
+      }
+    } catch (error) {
+      // Don't spam logs if API is down in dev
+      console.warn('⚠️ FER API error (likely dev env), skipping frame');
+    }
   }
 
   private stopFER() {
@@ -1433,6 +1530,11 @@ export default class RtcEngine {
   }
 
   async leaveChannel(): Promise<void> {
+    if (this.emotionBatch.length > 0) {
+      console.log(`💾 Flushing ${this.emotionBatch.length} emotions before leaving channel`);
+      await this.writeEmotionBatch();
+    }
+
     this.client.leave();
     logger.log(
       LogSource.AgoraSDK,
@@ -1551,6 +1653,12 @@ export default class RtcEngine {
           'Log',
           `RTC [setEnabled] trying to ${muted ? 'mute' : 'unmute'} local video stream`,
         );
+
+        if (muted && this.emotionBatch.length > 0) {
+          console.log(`💾 Flushing ${this.emotionBatch.length} emotions before disabling video`);
+          await this.writeEmotionBatch();
+        }
+
         logger.log(
           LogSource.AgoraSDK,
           'API',
@@ -2030,6 +2138,11 @@ export default class RtcEngine {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval);
       this.sessionCheckInterval = null;
+    }
+
+    if (this.emotionBatch.length > 0) {
+      console.log(`💾 Flushing ${this.emotionBatch.length} emotions before engine release`);
+      await this.writeEmotionBatch();
     }
 
     // Clean up FER monitoring completely

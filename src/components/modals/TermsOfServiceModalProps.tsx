@@ -19,7 +19,7 @@ export default function TermsOfServiceModal({ isOpen, onClose }: TermsOfServiceM
             <strong>Effective Date:</strong> October 23, 2025
           </p>
 
-          <div className="space-y-6">
+          <div className="space-y-6 text-justify">
             <section>
               <h3 className="font-semibold text-base mb-3">1. Acceptance of Terms</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
@@ -43,9 +43,9 @@ export default function TermsOfServiceModal({ isOpen, onClose }: TermsOfServiceM
             <section>
               <h3 className="font-semibold text-base mb-3">3. Eligibility and Age Requirements</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
-                This platform may be used by individuals of all ages. Users under 13 years of age must have
-                parental or guardian consent and supervision to use this service. By using this platform, you
-                represent that you meet these eligibility requirements or have obtained necessary parental consent.
+                This platform is intended for users aged 13 and above. By using this platform, 
+                you represent that you are at least 13 years old. Minors are encouraged to review 
+                these terms with a parent or guardian before using the service.
               </p>
             </section>
 
@@ -139,9 +139,9 @@ export default function TermsOfServiceModal({ isOpen, onClose }: TermsOfServiceM
               <h3 className="font-semibold text-base mb-3">10. Moderation and Enforcement</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
                 Session hosts have the authority to remove disruptive or non-compliant participants from their
-                sessions. Additionally, we reserve the right to suspend or permanently terminate user accounts
-                that violate these Terms of Service. We do not offer automated content moderation or user suspension
-                features. Users are encouraged to report violations to session hosts or contact us directly.
+                sessions. Additionally, we reserve the right to suspend or permanently terminate accounts
+                that violate these Terms of Service through Firebase Console administrative tools. We do not offer automated content 
+                moderation or user suspension features. Users are encouraged to report violations to session hosts or contact us directly.
               </p>
             </section>
 

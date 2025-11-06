@@ -19,7 +19,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyMod
             <strong>Effective Date:</strong> October 23, 2025
           </p>
 
-          <div className="space-y-6">
+          <div className="space-y-6 text-justify">
             <section>
               <h3 className="font-semibold text-base mb-3">1. Introduction</h3>
               <p className="text-sm text-gray-700 leading-relaxed">

@@ -134,7 +134,63 @@ const ENGAGEMENT_TIPS = [
   {
     title: "About False Positives 2",
     content: "Speaking while emotion tracking is active can trigger false readings. Movements like raised eyebrows, wide eyes, or stretched lips during speech might be misread as surprise, fear, or happiness. Always consider whether the student was talking when interpreting emotion data."
-  }
+  },
+  {
+    title: "Monday vs. Friday Energy",
+    content: "Students often show different emotions depending on the day of the week. Monday sessions might be quieter, while Friday classes could be more energetic or distracted. This is normal classroom rhythm."
+  },
+  {
+    title: "Weather Can Affect Mood",
+    content: "Rainy or gloomy days often result in more neutral or subdued expressions. Sunny days might bring more happiness and energy. Consider external factors beyond your control when reviewing session data."
+  },
+  {
+    title: "Post-Lunch Dip Is Real",
+    content: "Sessions right after lunch often show more neutral faces and less animation. Students are digesting food and naturally more relaxed. This afternoon slump is normal and not a sign of poor engagement."
+  },
+  {
+    title: "First Session vs. Last Session",
+    content: "Compare your first class of the day to your last. Earlier sessions might show fresher faces, while later ones display fatigue. Adjust expectations and teaching energy accordingly throughout the day."
+  },
+  {
+    title: "Review Sessions Look Different",
+    content: "When reviewing material students already know, you'll likely see more neutral expressions. This doesn't mean they're bored—they're just processing familiar information with less surprise or confusion."
+  },
+  {
+    title: "Introduction Sessions Are Mixed",
+    content: "First lessons on new topics often show a mix of curiosity (surprise), uncertainty (fear), and focus (neutral). This variety is healthy and shows students are actively processing new information."
+  },
+  {
+    title: "Group Work Changes Everything",
+    content: "When students work together in pairs or groups, emotion patterns shift dramatically. You'll often see more happiness and surprise as they interact with peers, which is a positive sign of collaboration."
+  },
+  {
+    title: "Exam Week Looks Grim",
+    content: "During exam periods, don't expect cheerful expressions. Fear and neutral faces dominate, even if students are well-prepared. This is test stress, not a reflection of your teaching quality."
+  },
+  {
+    title: "Holiday Sessions Are Chaotic",
+    content: "Sessions before or after holidays show unusual emotion patterns. Students are excited, distracted, or tired from travel. Don't compare these sessions to regular ones—they're outliers."
+  },
+  {
+    title: "Video-Heavy Lessons Vary",
+    content: "When showing videos or presentations, students' faces often go neutral as they watch screens. This is normal—they're absorbing visual content, not disengaged. Look for reactions after the video ends."
+  },
+  {
+    title: "Silent Work Time Is Neutral",
+    content: "Independent work periods, like completing worksheets or coding exercises, naturally produce neutral expressions. Students are concentrating on their own tasks. This isn't a bad thing—it's focused work mode."
+  },
+  {
+    title: "Repeating Material Feels Flat",
+    content: "When you have to re-explain concepts from previous sessions, emotion data might look less engaged. Students who already understand won't show surprise, while those catching up are focused (neutral)."
+  },
+  {
+    title: "Guest Speakers Change Moods",
+    content: "When someone else presents, emotion patterns will differ from your usual sessions. Students might show more curiosity or politeness. Compare these special sessions separately from your regular teaching data."
+  },
+  {
+    title: "End of Semester Exhaustion",
+    content: "Toward the end of a term, expect more fatigue and fewer animated expressions overall. Students are mentally drained from weeks of learning. Lower energy is normal—they're running on empty, not uninterested."
+  },
 ];
 
 const CustomTooltip = ({ active = false, payload = [] } = {}) => {
@@ -175,7 +231,7 @@ const StatCard = ({ icon, label, value, sublabel = '' }) => (
     </div>
     <div>
       <p className='text-2xl sm:text-3xl font-bold mt-2'>{value}</p>
-      {sublabel && <p className='text-xs text-gray-500 mt-1'>{sublabel}</p>}
+      {sublabel && <p className='text-xs text-gray-500 mt-1 truncate max-w-[140px]' title={sublabel}>{sublabel}</p>}
     </div>
   </div>
 );
@@ -740,7 +796,10 @@ const Records: React.FC & {
         ) : (
           <>
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
-              <StatCard icon={<Users className='w-5 h-5' />} label="Participants" value={selectedSession.participantCount} />
+              <StatCard
+                icon={<Users className='w-5 h-5' />}
+                label="Participants" value={selectedSession.participantCount}
+                sublabel='/w detected emotions' />
               <StatCard icon={<Clock className='w-5 h-5' />} label="Duration" value={selectedSession.duration} />
               <StatCard icon={<BarChart3 className='w-5 h-5' />} label="Emotion Records" value={selectedSession.emotionCount} />
               <StatCard
@@ -1016,8 +1075,8 @@ const Records: React.FC & {
                       setIsOpen(false);
                     }}
                     className={`p-3 rounded-lg cursor-pointer transition ${selectedSessionId === session.sessionID
-                        ? 'bg-[#1a7368]/50'
-                        : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
+                      ? 'bg-[#1a7368]/50'
+                      : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
                       }`}
                   >
                     <p className='font-medium text-sm'>{session.meetingTitle}</p>

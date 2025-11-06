@@ -53,7 +53,7 @@ const Auth = () => {
         setIsAuthenticated(true);
         Toast.show({
           leadingIconName: 'tick-fill',
-          type: 'info',
+          type: 'success',
           text1: `Welcome, ${result?.user?.displayName}!`,
           text2: `You're now logged in.`,
           visibilityTime: 3000,
@@ -88,7 +88,7 @@ const Auth = () => {
           />
           <h1 className='text-xl'>VirtuSense</h1>
         </div>
-        <p className='text-white text-lg md:text-xl font-bold my-4'>Sign in to Continue</p>
+        <p className='text-white text-lg font-bold my-4'>Sign in to Continue</p>
         <div
           className={`flex justify-center items-center gap-4 ${agreedToTerms
               ? 'hover:bg-[#165b53] bg-[#1a7368] cursor-pointer'
@@ -101,7 +101,7 @@ const Auth = () => {
             alt="logo"
             width={40}
             height={40}
-            className='w-5 md:w-7 h-auto object-contain'
+            className='w-5 h-auto object-contain'
           />
           <p className='truncate'>{user ? `Continue as ${user.displayName}` : 'Sign In'}</p>
         </div>

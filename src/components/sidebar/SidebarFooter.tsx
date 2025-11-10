@@ -39,11 +39,11 @@ const SidebarFooter: React.FC = () => {
                         height={100}
                         className="border border-[#2d2d2d] w-10 h-auto rounded-full"
                     />
-                    <div className="flex flex-col sm:hidden lg:flex cursor-default">
-                        <p className="truncate w-29 sm:w-3/4 text-white text-sm" title={googleUser?.displayName ?? undefined}>
+                    <div className="flex flex-col sm:hidden lg:flex cursor-default w-7/10">
+                        <p className="truncate max-w-max text-white text-sm" title={googleUser?.displayName ?? undefined}>
                             {googleUser?.displayName}
                         </p>
-                        <p className="truncate w-29 sm:w-3/4 text-xs text-gray-400" title={googleUser?.email ?? undefined}>
+                        <p className="truncate max-w-max text-xs text-gray-400" title={googleUser?.email ?? undefined}>
                             {googleUser?.email}
                         </p>
                     </div>

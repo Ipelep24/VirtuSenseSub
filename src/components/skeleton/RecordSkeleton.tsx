@@ -8,7 +8,7 @@ export default function RecordSkeleton() {
                 {/* Header Skeleton */}
                 <div className='flex flex-col gap-2'>
                     <Skeleton className='h-8 sm:h-10 bg-[#2d2d2d] rounded-lg w-64 relative overflow-hidden' />
-                    <Skeleton className='h-4 bg-[#2d2d2d] rounded w-96 relative overflow-hidden' />
+                    <Skeleton className='h-4 bg-[#2d2d2d] rounded w-50 relative overflow-hidden' />
                 </div>
 
                 {/* Stats Cards Skeleton */}

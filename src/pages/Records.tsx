@@ -30,6 +30,10 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { SidebarLayout } from './layout/SidebarLayout';
 import RecordSkeleton from '../components/skeleton/RecordSkeleton';
+import { MdChevronLeft, MdRefresh } from 'react-icons/md';
+import emptyState from '../assets/emptyState.png'
+import { truncate } from 'fs';
+import { se } from 'rn-emoji-keyboard';
 
 interface EmotionDetection {
   confidence: number;
@@ -193,6 +197,9 @@ const ENGAGEMENT_TIPS = [
   },
 ];
 
+const SESSIONS_CACHE_KEY = 'emotion_analytics_sessions_cache';
+const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
 const CustomTooltip = ({ active = false, payload = [] } = {}) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -227,11 +234,11 @@ const StatCard = ({ icon, label, value, sublabel = '' }) => (
   <div className='bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-5 min-h-[120px] flex flex-col justify-between'>
     <div className='flex items-center gap-2 text-gray-400'>
       {icon}
-      <span className='text-xs sm:text-sm truncate max-w-[140px]'>{label}</span>
+      <span className='text-xs sm:text-sm truncate max-w-max'>{label}</span>
     </div>
     <div>
       <p className='text-2xl sm:text-3xl font-bold mt-2'>{value}</p>
-      {sublabel && <p className='text-xs text-gray-500 mt-1 truncate max-w-[140px]' title={sublabel}>{sublabel}</p>}
+      {sublabel && <p className='text-xs text-gray-500 mt-1 truncate max-w-max' title={sublabel}>{sublabel}</p>}
     </div>
   </div>
 );
@@ -240,6 +247,8 @@ const Records: React.FC & {
   layout?: (page: React.ReactNode) => JSX.Element;
 } = () => {
   const SidebarIcon = BsReverseLayoutSidebarReverse as React.ComponentType<{ className?: string; onClick?: () => void }>;
+  const ReturnIcon = MdChevronLeft as React.ComponentType<{ className?: string; onClick?: () => void }>;
+  const RefreshIcon = MdRefresh as React.ComponentType<{ className?: string; onClick?: () => void }>;
   const [hoveringEmotion, setHoveringEmotion] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
@@ -250,6 +259,7 @@ const Records: React.FC & {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Add this useEffect for debouncing (place it with your other useEffects)
   useEffect(() => {
@@ -308,7 +318,7 @@ const Records: React.FC & {
   }, []);
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessions = async (forceRefresh = false) => {
       try {
         const currentUser = auth.currentUser;
         if (!currentUser) {
@@ -316,22 +326,55 @@ const Records: React.FC & {
           return;
         }
 
+        // Try to load from cache first
+        if (!forceRefresh) {
+          const cached = localStorage.getItem(SESSIONS_CACHE_KEY);
+          if (cached) {
+            try {
+              const { data, timestamp, userId } = JSON.parse(cached);
+              const now = Date.now();
+
+              // Check if cache is valid (same user and not expired)
+              if (userId === currentUser.uid && (now - timestamp) < CACHE_EXPIRY_MS) {
+                console.log('Loading from cache');
+                // Convert stored dates back to proper format
+                const restoredSessions = data.map((session: any) => ({
+                  ...session,
+                  createdAt: { toDate: () => new Date(session.createdAt) },
+                  attendees: session.attendees.map((attendee: any) => ({
+                    ...attendee,
+                    createdAt: attendee.createdAt ? { toDate: () => new Date(attendee.createdAt) } : null,
+                    emotions: attendee.emotions.map((emotion: any) => ({
+                      ...emotion,
+                      timestamp: emotion.timestamp ? { toDate: () => new Date(emotion.timestamp) } : null
+                    }))
+                  }))
+                }));
+                setSessions(restoredSessions);
+                setLoading(false);
+                return;
+              }
+            } catch (e) {
+              console.error('Cache parse error:', e);
+            }
+          }
+        }
+
+        console.log('Fetching from Firestore');
         const sessionsRef = collection(db, 'sessions');
-        const sessionsSnap = await getDocs(sessionsRef);
+        const sessionsQuery = query(sessionsRef, where('hostUIDs', 'array-contains', currentUser.uid));
+        const sessionsSnap = await getDocs(sessionsQuery);
         const hostedSessions: SessionData[] = [];
 
         for (const sessionDoc of sessionsSnap.docs) {
           const sessionData = sessionDoc.data();
           const sessionId = sessionDoc.id;
 
-          const hostsRef = collection(db, `sessions/${sessionId}/hosts`);
-          const hostQuery = query(hostsRef, where('userUID', '==', currentUser.uid));
-          const hostSnap = await getDocs(hostQuery);
-
-          if (hostSnap.empty) continue;
-
           const attendeesRef = collection(db, `sessions/${sessionId}/attendees`);
           const attendeesSnap = await getDocs(attendeesRef);
+
+          // Skip sessions with no attendees
+          if (attendeesSnap.empty) continue;
 
           const attendees: Attendee[] = [];
           let totalEmotions = 0;
@@ -341,8 +384,6 @@ const Records: React.FC & {
           attendeesSnap.forEach(attendeeDoc => {
             const attendeeData = attendeeDoc.data();
             const emotions = attendeeData.emotions || [];
-
-            if (emotions.length === 0) return;
 
             attendees.push({
               userUID: attendeeData.userUID,
@@ -363,8 +404,6 @@ const Records: React.FC & {
               }
             });
           });
-
-          if (attendees.length === 0 || totalEmotions === 0) continue;
 
           let duration = '0 min';
           const sessionCreated = sessionData.createdAt?.toDate ? sessionData.createdAt.toDate() : new Date(sessionData.createdAt);
@@ -391,16 +430,48 @@ const Records: React.FC & {
           return dateB.getTime() - dateA.getTime();
         });
 
+        // Save to cache - convert Firestore Timestamps to ISO strings
+        try {
+          const cacheData = hostedSessions.map(session => ({
+            ...session,
+            createdAt: session.createdAt?.toDate ? session.createdAt.toDate().toISOString() : new Date(session.createdAt).toISOString(),
+            attendees: session.attendees.map(attendee => ({
+              ...attendee,
+              createdAt: attendee.createdAt?.toDate ? attendee.createdAt.toDate().toISOString() : (attendee.createdAt ? new Date(attendee.createdAt).toISOString() : null),
+              emotions: attendee.emotions.map(emotion => ({
+                ...emotion,
+                timestamp: emotion.timestamp?.toDate ? emotion.timestamp.toDate().toISOString() : (emotion.timestamp ? new Date(emotion.timestamp).toISOString() : null)
+              }))
+            }))
+          }));
+
+          localStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify({
+            data: cacheData,
+            timestamp: Date.now(),
+            userId: currentUser.uid
+          }));
+        } catch (e) {
+          console.error('Failed to cache sessions:', e);
+        }
+
         setSessions(hostedSessions);
         setLoading(false);
+        setIsRefreshing(false);
       } catch (error) {
         console.error('Error fetching sessions:', error);
         setError('Failed to load sessions. Please refresh the page.');
         setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
     fetchSessions();
+
+    // Expose refresh function
+    (window as any).refreshSessions = () => {
+      setIsRefreshing(true);
+      fetchSessions(true);
+    };
   }, []);
 
   const calculateOverallStats = () => {
@@ -462,53 +533,98 @@ const Records: React.FC & {
 
     const recommendations = [];
 
-    if (negativePercent > 40) {
-      recommendations.push({
-        type: 'concern',
-        title: 'High Negative Affect Detected',
-        message: 'Consider checking in with students about lesson difficulty. Break complex topics into smaller segments, or provide additional support resources.'
-      });
-    }
+    // Calculate differences between pairs
+    const posNegDiff = Math.abs(positivePercent - negativePercent);
+    const posNeuDiff = Math.abs(positivePercent - neutralPercent);
+    const negNeuDiff = Math.abs(negativePercent - neutralPercent);
 
-    if (neutralPercent > 60) {
-      recommendations.push({
-        type: 'info',
-        title: 'Predominantly Neutral Expressions',
-        message: 'Students may be focused or disengaged. Try incorporating interactive elements, questions, or brief discussions to gauge true engagement levels.'
-      });
-    }
+    // Determine the dominant emotion group
+    const max = Math.max(positivePercent, negativePercent, neutralPercent);
+    const min = Math.min(positivePercent, negativePercent, neutralPercent);
 
-    if (positivePercent > 50) {
-      recommendations.push({
-        type: 'success',
-        title: 'Strong Positive Engagement',
-        message: 'Great! Students appear engaged. Consider what teaching strategies worked well in this session to replicate in future lessons.'
-      });
-    }
-
-    const fearData = emotionData.find(e => e.name === 'fear');
-    if (fearData && fearData.percent > 20) {
-      recommendations.push({
-        type: 'warning',
-        title: 'Elevated Fear/Anxiety Indicators',
-        message: 'This could indicate challenging content or test anxiety. Provide reassurance, break down difficult concepts, and create a supportive learning environment.'
-      });
-    }
-
-    const sadnessData = emotionData.find(e => e.name === 'sadness');
-    if (sadnessData && sadnessData.percent > 25) {
-      recommendations.push({
-        type: 'concern',
-        title: 'Sadness Expressions Detected',
-        message: 'Students may be struggling or feeling overwhelmed. Consider adjusting pace, offering encouragement, or checking if external factors are affecting the class.'
-      });
-    }
-
-    if (recommendations.length === 0) {
+    // TRULY BALANCED (all three within ~15% of each other)
+    if (max - min < 15) {
       recommendations.push({
         type: 'success',
         title: 'Balanced Emotional Climate',
-        message: 'Emotion patterns appear balanced. Continue monitoring trends and adapting your teaching approach based on student needs.'
+        message: `Emotions are evenly distributed (Positive: ${positivePercent.toFixed(0)}%, Neutral: ${neutralPercent.toFixed(0)}%, Negative: ${negativePercent.toFixed(0)}%). This suggests varied student responses—some engaged, some focused, some challenged. This diversity is normal in active learning environments.`
+      });
+    }
+
+    // TWO-WAY BALANCED: Positive & Negative (Neutral is low)
+    else if (posNegDiff < 15 && neutralPercent < Math.min(positivePercent, negativePercent) - 10) {
+      recommendations.push({
+        type: 'warning',
+        title: 'Polarized Student Responses',
+        message: `Students show split reactions with ${positivePercent.toFixed(0)}% positive and ${negativePercent.toFixed(0)}% negative, while neutral is low (${neutralPercent.toFixed(0)}%). Some students are thriving while others struggle. Consider differentiated support or checking if content difficulty varies across the group.`
+      });
+    }
+
+    // TWO-WAY BALANCED: Positive & Neutral (Negative is low)
+    else if (posNeuDiff < 15 && negativePercent < Math.min(positivePercent, neutralPercent) - 10) {
+      recommendations.push({
+        type: 'success',
+        title: 'Positive and Focused Atmosphere',
+        message: `Strong balance between positive (${positivePercent.toFixed(0)}%) and neutral (${neutralPercent.toFixed(0)}%) with minimal negative affect (${negativePercent.toFixed(0)}%). Students appear engaged and focused without signs of distress. This is an ideal learning state.`
+      });
+    }
+
+    // TWO-WAY BALANCED: Negative & Neutral (Positive is low)
+    else if (negNeuDiff < 15 && positivePercent < Math.min(negativePercent, neutralPercent) - 10) {
+      recommendations.push({
+        type: 'concern',
+        title: 'Low Positive Engagement',
+        message: `Emotions split between negative (${negativePercent.toFixed(0)}%) and neutral (${neutralPercent.toFixed(0)}%), with little positive affect (${positivePercent.toFixed(0)}%). Students may be disengaged or finding content challenging. Try incorporating interactive elements, check pacing, or add moments of success/achievement.`
+      });
+    }
+
+    // CLEAR DOMINANT: Positive leads significantly
+    else if (positivePercent === max && positivePercent > neutralPercent + 15 && positivePercent > negativePercent + 15) {
+      recommendations.push({
+        type: 'success',
+        title: 'Highly Engaged Students',
+        message: `${positivePercent.toFixed(0)}% positive affect indicates strong engagement. Students are responding well to the content. Note what worked here—teaching method, topic choice, or pacing—to replicate in future sessions.`
+      });
+    }
+
+    // CLEAR DOMINANT: Neutral leads significantly
+    else if (neutralPercent === max && neutralPercent > positivePercent + 15 && neutralPercent > negativePercent + 15) {
+      recommendations.push({
+        type: 'info',
+        title: 'High Neutral Expressions',
+        message: `${neutralPercent.toFixed(0)}% neutral affect could mean deep focus or passive disengagement. Consider adding interactive elements (polls, discussions, quick activities) to verify engagement levels and energize the session.`
+      });
+    }
+
+    // CLEAR DOMINANT: Negative leads significantly
+    else if (negativePercent === max && negativePercent > positivePercent + 15 && negativePercent > neutralPercent + 15) {
+      recommendations.push({
+        type: 'concern',
+        title: 'Elevated Negative Affect',
+        message: `${negativePercent.toFixed(0)}% negative emotions suggests students are struggling, frustrated, or anxious. Consider: Is the content too challenging? Are technical issues present? Would breaking into smaller segments help? Check in with students directly.`
+      });
+    }
+
+    // MODERATE DOMINANT (leading but not by much - catch remaining cases)
+    else if (positivePercent === max) {
+      recommendations.push({
+        type: 'success',
+        title: 'Positive Engagement with Mixed Signals',
+        message: `While positive emotions lead at ${positivePercent.toFixed(0)}%, there's notable ${neutralPercent > negativePercent ? 'neutral' : 'negative'} affect (${(neutralPercent > negativePercent ? neutralPercent : negativePercent).toFixed(0)}%). Students are generally engaged but some may need additional support or stimulation.`
+      });
+    }
+    else if (neutralPercent === max) {
+      recommendations.push({
+        type: 'info',
+        title: 'Neutral-Leaning with Mixed Responses',
+        message: `Neutral expressions lead at ${neutralPercent.toFixed(0)}%, with ${positivePercent.toFixed(0)}% positive and ${negativePercent.toFixed(0)}% negative. Students appear attentive but not highly animated. This is normal for lecture-heavy or independent work periods.`
+      });
+    }
+    else if (negativePercent === max) {
+      recommendations.push({
+        type: 'warning',
+        title: 'Negative Trend in Student Affect',
+        message: `Negative affect at ${negativePercent.toFixed(0)}% is higher than positive (${positivePercent.toFixed(0)}%). This may indicate challenging material or test stress. Provide encouragement and ensure students have support resources available.`
       });
     }
 
@@ -619,7 +735,14 @@ const Records: React.FC & {
   if (sessions.length === 0) {
     return (
       <div className='h-full w-full flex items-center justify-center text-white bg-[#1c1c1b]'>
-        <div className='text-center'>
+        <div className='flex flex-col justify-center space-y-3'>
+          <img
+            src={emptyState}
+            alt='Image'
+            width={300}
+            height={300}
+            className='w-40 h-auto rounded-md opacity-70'
+          />
           <p className='text-gray-400'>No hosted sessions yet</p>
         </div>
       </div>
@@ -649,14 +772,38 @@ const Records: React.FC & {
       <div className='h-full flex flex-col flex-1 p-3 sm:p-6 gap-4 sm:gap-6 overflow-auto relative z-0'>
         <div className='flex flex-col gap-2'>
           <div className='flex items-center justify-between'>
-            <h1 className='text-2xl sm:text-3xl font-bold'>
+            <h1 className={`text-xl sm:text-2xl font-bold ${selectedSession ? 'truncate max-w-sm lg:max-w-md' : ''}`}
+              title={selectedSession ? selectedSession.meetingTitle : ''}
+            >
               {selectedSession ? selectedSession.meetingTitle : 'Emotion Analytics'}
             </h1>
-            {selectedSession && (
-              <button onClick={() => setSelectedSessionId(null)} className='text-sm text-gray-400 hover:text-white transition'>
-                ← Back to Overview
-              </button>
-            )}
+            <div className='flex items-center mr-10'>
+              {selectedSession && (
+                <button onClick={() => setSelectedSessionId(null)} className='flex items-center text-sm text-gray-400 hover:text-white transition'>
+                  <ReturnIcon className='w-4 h-4 mt-0.5' />
+                  <span className='leading-none whitespace-nowrap'>Back to Overview</span>
+                </button>
+              )}
+              {!selectedSession && (
+                <button
+                  onClick={() => (window as any).refreshSessions()}
+                  disabled={isRefreshing}
+                  className='text-sm text-gray-400 hover:text-white transition disabled:opacity-50 flex items-center gap-1'
+                >
+                  {isRefreshing ? (
+                    <>
+                      <div className='w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin'></div>
+                      Refreshing...
+                    </>
+                  ) : (
+                    <div className='flex items-center'>
+                      <RefreshIcon className='w-4 h-4 mt-[1px]' />
+                      <span className='leading-none'>Refresh</span>
+                    </div>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className='text-gray-400 text-sm sm:text-base'>
             {selectedSession
@@ -669,9 +816,9 @@ const Records: React.FC & {
           <>
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
               <StatCard icon={<Calendar className='w-5 h-5' />} label="Total Sessions" value={overallStats.totalSessions} />
-              <StatCard icon={<Users className='w-5 h-5' />} label="Total Participants" value={overallStats.totalParticipants} />
+              <StatCard icon={<Users className='w-5 h-5' />} label="Total Participants" sublabel='/w detected emotions' value={overallStats.totalParticipants} />
               <StatCard icon={<Clock className='w-5 h-5' />} label="Avg Session Duration" value={overallStats.avgDuration} />
-              <StatCard icon={<BarChart3 className='w-5 h-5' />} label="Total Emotion Records" value={overallStats.totalEmotionSamples} />
+              <StatCard icon={<BarChart3 className='w-5 h-5' />} label="Total Emotion Records" sublabel='per student emotion change' value={overallStats.totalEmotionSamples} />
             </div>
 
             {/* Tip Box */}
@@ -762,8 +909,8 @@ const Records: React.FC & {
                       onClick={() => setSelectedSessionId(session.sessionID)}
                       className='p-3 bg-[#2d2d2d] rounded-lg hover:bg-[#3d3d3d] cursor-pointer transition flex justify-between items-center'
                     >
-                      <div>
-                        <p className='font-medium'>{session.meetingTitle}</p>
+                      <div className='w-8/10'>
+                        <p className='font-medium truncate max-w-max' title={session.meetingTitle}>{session.meetingTitle}</p>
                         <p className='text-xs text-gray-400'>{formatDate(session.createdAt)} • {session.participantCount} participants</p>
                       </div>
                       <div className='text-sm text-gray-400'>{session.duration}</div>
@@ -1031,7 +1178,7 @@ const Records: React.FC & {
       <div className='absolute sm:relative h-full right-0 top-0 z-20'>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className='absolute top-4 -left-10 z-30 p-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-lg text-gray-400 hover:text-white transition'
+          className='absolute top-4 -left-10 z-30 p-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-lg text-gray-400 hover:text-white transition shadow-[0_4px_6px_rgba(0,0,0,0.3)]'
         >
           <SidebarIcon className='w-4 h-4' />
         </button>
@@ -1079,7 +1226,7 @@ const Records: React.FC & {
                       : 'bg-[#2d2d2d] hover:bg-[#3d3d3d]'
                       }`}
                   >
-                    <p className='font-medium text-sm'>{session.meetingTitle}</p>
+                    <p className='font-medium text-sm truncate' title={session.meetingTitle}>{session.meetingTitle}</p>
                     <p className='text-xs text-gray-400 mt-1'>{formatDate(session.createdAt)}</p>
                     <div className='flex items-center justify-between mt-2 text-xs'>
                       <span className='text-gray-500'>{session.participantCount} participants</span>

@@ -34,7 +34,7 @@ import {
   type ScreenEncoderConfigurationPreset,
   type VideoEncoderConfiguration,
 } from '../../../src/app-state/useVideoQuality';
-import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 import { db } from '../../../src/firebase';
 import Toast from '../../../react-native-toast-message';
 
@@ -1125,12 +1125,14 @@ export default class RtcEngine {
 
       if (!sessionSnap.exists()) {
         // Create new session document
-        const createdAt = serverTimestamp();
         await setDoc(sessionRef, {
           meetingTitle: this.meetingTitle || 'Untitled Meeting',
           sessionID: this.sessionId,
-          createdAt: createdAt,
+          createdAt: serverTimestamp(),
+          hostUIDs: [], // ✅ Initialize empty array for fast queries
         });
+
+        console.log('✅ New session created with hostUIDs array');
 
         // Store the creation time locally
         this.sessionStartTime = Timestamp.now();
@@ -1138,12 +1140,14 @@ export default class RtcEngine {
         // Get existing session start time
         const sessionData = sessionSnap.data();
         this.sessionStartTime = sessionData.createdAt;
+
+        console.log('✅ Existing session found');
       }
 
       // Start monitoring session duration
       this.startSessionTimeMonitoring();
 
-      // Handle host logic
+      // Handle host logic - add to both array and subcollection
       if (this.isHost && this.userUID) {
         await this.addHostToSession();
       }
@@ -1233,24 +1237,25 @@ export default class RtcEngine {
     }
 
     try {
+      const sessionRef = doc(db, 'sessions', this.sessionId);
       const hostRef = doc(db, 'sessions', this.sessionId, 'hosts', this.userUID);
       const hostSnap = await getDoc(hostRef);
 
+      // Only write if host doesn't exist
       if (!hostSnap.exists()) {
-        // First time this host is joining
-        await setDoc(hostRef, {
-          userUID: this.userUID,
-          username: this.username || 'Unknown Host',
-          createdAt: serverTimestamp(),
-          rejoinedAt: [], // Empty array for first join
-        });
-      } else {
-        // Host is rejoining - add timestamp to rejoinedAt array
-        const currentData = hostSnap.data();
-        await setDoc(hostRef, {
-          username: this.username || currentData.username,
-          rejoinedAt: [...(currentData.rejoinedAt || []), Timestamp.now()], // Use Timestamp.now() instead
-        }, { merge: true });
+        await Promise.all([
+          // Add to hostUIDs array for fast queries
+          setDoc(sessionRef, {
+            hostUIDs: arrayUnion(this.userUID)
+          }, { merge: true }),
+
+          // Add to hosts subcollection for metadata
+          setDoc(hostRef, {
+            userUID: this.userUID,
+            username: this.username || 'Unknown Host',
+            createdAt: serverTimestamp(),
+          })
+        ]);
       }
     } catch (error) {
       console.error('❌ Error adding host:', error);

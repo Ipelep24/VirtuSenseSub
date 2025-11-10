@@ -77,8 +77,8 @@ const Auth = () => {
 
   return (
     <div className='flex w-screen h-screen gap-10 flex-col items-center justify-center text-white'>
-      <div className='sm:aspect-[5/3] p-2 h-50 sm:h-auto w-9/10 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
-        <div className='w-[80%] justify-start flex gap-2 items-center'>
+      <div className='sm:aspect-[5/3] p-2 h-60 sm:h-auto w-9/10 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
+        <div className='w-[80%] justify-start flex gap-2 items-center mt-4'>
           <img
             src={virtuSense}
             alt='logo'
@@ -88,7 +88,9 @@ const Auth = () => {
           />
           <h1 className='text-xl'>VirtuSense</h1>
         </div>
-        <p className='text-white text-lg font-bold my-4'>Sign in to Continue</p>
+        <p className='text-white text-lg font-bold my-4'>
+          {user ? 'Welcome Back' : 'Sign in to Continue'}
+        </p>
         <div
           className={`flex justify-center items-center gap-4 ${agreedToTerms
               ? 'hover:bg-[#165b53] bg-[#1a7368] cursor-pointer'

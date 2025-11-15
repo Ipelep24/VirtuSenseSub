@@ -5,10 +5,10 @@ object-assign
 */
 
 /*!
-   *  decimal.js v10.4.3
+   *  decimal.js v10.6.0
    *  An arbitrary-precision Decimal type for JavaScript.
    *  https://github.com/MikeMcl/decimal.js
-   *  Copyright (c) 2022 Michael Mclaughlin <M8ch88l@gmail.com>
+   *  Copyright (c) 2025 Michael Mclaughlin <M8ch88l@gmail.com>
    *  MIT Licence
    */
 
@@ -52,7 +52,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 
-/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
 
 /**
  *  @preserve  JavaScript implementation of
@@ -234,13 +234,6 @@ PERFORMANCE OF THIS SOFTWARE.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * @license Complex.js v2.1.1 12/05/2020
- *
- * Copyright (c) 2020, Robert Eisele (robert@xarg.org)
- * Dual licensed under the MIT or GPL Version 2 licenses.
- **/
 
 /**
  * @license Fraction.js v4.3.7 31/08/2023

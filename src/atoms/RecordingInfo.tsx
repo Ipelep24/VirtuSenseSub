@@ -1,3 +1,4 @@
+//@ts-nocheck
 import {StyleSheet, Text, View} from 'react-native';
 import hexadecimalTransparency from '../utils/hexadecimalTransparency';
 import React from 'react';

@@ -34,6 +34,8 @@ import { MdChevronLeft, MdRefresh } from 'react-icons/md';
 import emptyState from '../assets/emptyState.png'
 import { truncate } from 'fs';
 import { se } from 'rn-emoji-keyboard';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css'
 
 interface EmotionDetection {
   confidence: number;
@@ -57,6 +59,73 @@ interface SessionData {
   emotionCount: number;
   duration: string;
 }
+
+// Add this at the top of your Records.tsx file, after your imports
+const driverStyles = `
+  .custom-driver-popover {
+    background: #2d2d2d !important;
+    color: white !important;
+    border: 1px solid #3d3d3d !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .custom-driver-popover .driver-popover-title {
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+  }
+
+  .custom-driver-popover .driver-popover-description {
+    color: #d1d5db !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .custom-driver-popover .driver-popover-arrow {
+    display: none;
+  }
+
+  .custom-driver-popover .driver-popover-close-btn {
+    color: #9ca3af !important;
+    transition: color 0.2s !important;
+  }
+
+  .custom-driver-popover .driver-popover-close-btn:hover {
+    color: white !important;
+  }
+
+  .custom-driver-popover .driver-popover-progress-text {
+    color: #9ca3af !important;
+    font-size: 0.875rem !important;
+  }
+
+  .custom-driver-popover .driver-popover-next-btn {
+    background: #1a7368 !important;
+    color: white !important;
+    text-shadow: none;
+    border: none;
+  }
+
+  .custom-driver-popover .driver-popover-next-btn:hover {
+    background: #15665d !important;
+  }
+
+  .custom-driver-popover .driver-popover-prev-btn {
+    background: transparent !important;
+    color: #9ca3af !important;
+    text-shadow: none;
+  }
+
+  .custom-driver-popover .driver-popover-prev-btn:hover {
+    border-color: #1a7368 !important;
+    color: white !important;
+  }
+
+  /* Style highlighted element */
+  .driver-active-element {
+    border-radius: 0.75rem !important;
+  }
+`;
 
 const EMOTION_COLORS = {
   happiness: '#f5e60a',
@@ -261,6 +330,86 @@ const Records: React.FC & {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  useEffect(() => {
+    const loadingStateEvent = new CustomEvent('recordsLoadingState', {
+      detail: { 
+        isLoading: loading || isRefreshing,
+        isEmpty: !loading && !isRefreshing && sessions.length === 0
+       }
+    });
+    window.dispatchEvent(loadingStateEvent);
+  }, [loading, isRefreshing, sessions.length]);
+
+  // Add the styles to the document
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.textContent = driverStyles;
+    document.head.appendChild(styleTag);
+
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Define tour steps
+    const overviewTourSteps = [
+      { popover: { title: 'Welcome to Emotion Analytics! 👋', description: 'Let\'s take a quick tour of your dashboard. Here you can track student engagement through facial emotion recognition across all your sessions. Click "Next" to explore the key features.' } },
+      { element: '#overallCards', popover: { title: 'Overall Statistics', description: 'View your total sessions, participants, average duration, and emotion records across all your hosted sessions.' } },
+      { element: '#overallTipbox', popover: { title: 'Engagement Tips', description: 'Learn important context about how to interpret emotion data. These tips rotate automatically to help you better understand the analytics.' } },
+      { element: '#overallDistribution', popover: { title: 'Emotion Distribution', description: 'See the breakdown of all emotions detected across your sessions. Hover over segments for detailed percentages.' } },
+      { element: '#overallEngagement', popover: { title: 'Engagement Assessment', description: 'Emotions are grouped into Positive, Neutral, and Negative categories to give you a quick engagement overview.' } },
+      { element: '#recentSessions', popover: { title: 'Recent Sessions', description: 'Click any session to view detailed analytics for that specific meeting.' } },
+      { element: '#recommendations', popover: { title: 'Recommendations', description: 'Get personalized insights based on your emotion data patterns. These recommendations help you understand engagement trends and suggest teaching adjustments.' } }
+    ];
+
+    const sessionTourSteps = [
+      { element: '#sessionStat', popover: { title: 'Session Statistics', description: 'View participant count, duration, total emotion records, and the most frequently detected emotion for this session.' } },
+      { element: '#sessionTip', popover: { title: 'Session Context', description: 'Important context about interpreting this session\'s data based on its emotion patterns.' } },
+      { element: '#sessionTimeline', popover: { title: 'Emotion Timeline', description: 'See how emotions changed throughout the session in 5-minute intervals. Hover over the chart to see details.' } },
+      { element: '#sessionEngagement', popover: { title: 'Session Engagement', description: 'View the overall engagement breakdown for this specific session.' } },
+      { element: '#sessionDistribution', popover: { title: 'Session Distribution', description: 'Detailed breakdown of all emotions detected during this session.' } },
+      { element: '#sessionInsights', popover: { title: 'Session Insights', description: 'Get specific recommendations based on this session\'s emotion patterns.' } },
+      { element: '#sessionMoments', popover: { title: 'Peak Moments', description: 'Identify the time intervals where specific emotions were most prevalent.' } }
+    ];
+
+    // Listen for help button click
+    const handleStartTour = () => {
+      setIsOpen(false);
+      const steps = selectedSessionId ? sessionTourSteps : overviewTourSteps;
+      const tourDriver = driver({
+        showProgress: true,
+        showButtons: ['next', 'previous', 'close'],
+        popoverClass: 'custom-driver-popover',
+        steps: steps,
+        onPopoverRender: (popover, { state }) => {
+          const element = state.activeElement;
+          if (element) {
+            const scrollContainer = document.querySelector('main.overflow-auto');
+
+            if (scrollContainer) {
+              const elementRect = element.getBoundingClientRect();
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const scrollTop = scrollContainer.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+
+              scrollContainer.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+              });
+            }
+          }
+        }
+      });
+      tourDriver.drive();
+    };
+
+    window.addEventListener('startRecordsTour', handleStartTour);
+
+    return () => {
+      window.removeEventListener('startRecordsTour', handleStartTour);
+    };
+  }, [selectedSessionId]);
+
   // Add this useEffect for debouncing (place it with your other useEffects)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -457,6 +606,7 @@ const Records: React.FC & {
         setSessions(hostedSessions);
         setLoading(false);
         setIsRefreshing(false);
+
       } catch (error) {
         console.error('Error fetching sessions:', error);
         setError('Failed to load sessions. Please refresh the page.');
@@ -735,15 +885,30 @@ const Records: React.FC & {
   if (sessions.length === 0) {
     return (
       <div className='h-full w-full flex items-center justify-center text-white bg-[#1c1c1b]'>
-        <div className='flex flex-col justify-center space-y-3'>
+        <div className='flex flex-col justify-center items-center space-y-3'>
           <img
             src={emptyState}
             alt='Image'
-            width={300}
-            height={300}
             className='w-40 h-auto rounded-md opacity-70'
           />
           <p className='text-gray-400'>No hosted sessions yet</p>
+          <button
+            onClick={() => (window as any).refreshSessions()}
+            disabled={isRefreshing}
+            className='text-sm text-gray-400 hover:text-white transition disabled:opacity-50 flex items-center gap-1'
+          >
+            {isRefreshing ? (
+              <>
+                <div className='w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin'></div>
+                Fetching...
+              </>
+            ) : (
+              <div className='flex items-center'>
+                <RefreshIcon className='w-4 h-4 mt-1px' />
+                <span className='leading-none'>Try Again</span>
+              </div>
+            )}
+          </button>
         </div>
       </div>
     );
@@ -797,7 +962,7 @@ const Records: React.FC & {
                     </>
                   ) : (
                     <div className='flex items-center'>
-                      <RefreshIcon className='w-4 h-4 mt-[1px]' />
+                      <RefreshIcon className='w-4 h-4 mt-px' />
                       <span className='leading-none'>Refresh</span>
                     </div>
                   )}
@@ -814,7 +979,8 @@ const Records: React.FC & {
 
         {!selectedSession ? (
           <>
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
+            <div id='overallCards'
+              className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
               <StatCard icon={<Calendar className='w-5 h-5' />} label="Total Sessions" value={overallStats.totalSessions} />
               <StatCard icon={<Users className='w-5 h-5' />} label="Total Participants" sublabel='/w detected emotions' value={overallStats.totalParticipants} />
               <StatCard icon={<Clock className='w-5 h-5' />} label="Avg Session Duration" value={overallStats.avgDuration} />
@@ -822,9 +988,9 @@ const Records: React.FC & {
             </div>
 
             {/* Tip Box */}
-            <div className='w-full bg-gradient-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
+            <div id='overallTipbox' className='w-full bg-linear-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
-                <Lightbulb className='w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5' />
+                <Lightbulb className='w-5 h-5 text-yellow-400 shrink-0 mt-0.5' />
                 <div className='flex-1'>
                   <h3 className='font-semibold text-sm sm:text-base mb-1'>{currentTip.title}</h3>
                   <p className='text-xs sm:text-sm text-gray-300 leading-relaxed'>{currentTip.content}</p>
@@ -850,59 +1016,65 @@ const Records: React.FC & {
                   <p className='text-xs text-gray-400 mt-1 mb-4'>Across all sessions</p>
                 </div>
                 {overallEmotionData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={overallEmotionData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={60}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={(entry) => `${entry.percent}%`}
-                      >
-                        {overallEmotionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={EMOTION_COLORS[entry.name as keyof typeof EMOTION_COLORS]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<PieTooltip />} />
-                      <Legend formatter={(value) => `${EMOTION_EMOJIS[value as keyof typeof EMOTION_EMOJIS] || ''} ${value}`} wrapperStyle={{ fontSize: '12px' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div id='overallDistribution'>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={overallEmotionData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={60}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={(entry) => `${entry.percent}%`}
+                        >
+                          {overallEmotionData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={EMOTION_COLORS[entry.name as keyof typeof EMOTION_COLORS]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<PieTooltip />} />
+                        <Legend formatter={(value) => `${EMOTION_EMOJIS[value as keyof typeof EMOTION_EMOJIS] || ''} ${value}`} wrapperStyle={{ fontSize: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 ) : (
                   <div className='h-full flex items-center justify-center text-gray-500'>No emotion data available</div>
                 )}
               </div>
 
               <div className='bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[300px]'>
-                <h3 className='text-lg font-semibold mb-2'>Engagement Assessment</h3>
-                <p className='text-xs text-gray-400 mb-4'>Grouped emotion indicators</p>
-                <div className='space-y-4 text-sm'>
-                  {overallEngagement.map(item => (
-                    <div key={item.name}>
-                      <div className='flex justify-between mb-2'>
-                        <span>{item.name}</span>
-                        <span className='text-gray-400'>{item.percent}%</span>
+                <div id='overallEngagement'>
+                  <h3 className='text-lg font-semibold mb-2'>Engagement Assessment</h3>
+                  <p className='text-xs text-gray-400 mb-4'>Grouped emotion indicators</p>
+                  <div className='space-y-4 text-sm'>
+                    {overallEngagement.map(item => (
+                      <div key={item.name}>
+                        <div className='flex justify-between mb-2'>
+                          <span>{item.name}</span>
+                          <span className='text-gray-400'>{item.percent}%</span>
+                        </div>
+                        <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
+                          <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
+                        </div>
                       </div>
-                      <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
-                        <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
-                      </div>
+                    ))}
+                    <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
+                      <p className='text-xs text-gray-500 leading-relaxed'>
+                        <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
+                        <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
+                        <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
+                      </p>
                     </div>
-                  ))}
-                  <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
-                    <p className='text-xs text-gray-500 leading-relaxed'>
-                      <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
-                      <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
-                      <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
-                    </p>
                   </div>
                 </div>
               </div>
 
               <div className='lg:col-span-3 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[300px]'>
                 <h3 className='text-lg font-semibold mb-4'>Recent Sessions</h3>
-                <div className='space-y-2'>
+                <div
+                  id='recentSessions'
+                  className='space-y-2'>
                   {sessions.slice(0, 5).map(session => (
                     <div
                       key={session.sessionID}
@@ -925,7 +1097,9 @@ const Records: React.FC & {
                   <TrendingUp className='w-5 h-5 text-blue-400' />
                   <h3 className='text-lg font-semibold'>Recommendations</h3>
                 </div>
-                <div className='space-y-3'>
+                <div
+                  id='recommendations'
+                  className='space-y-3'>
                   {overallRecommendations.map((rec, index) => (
                     <div key={index} className={`p-4 rounded-lg border ${rec.type === 'success' ? 'bg-green-500/10 border-green-500/30' :
                       rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' :
@@ -942,7 +1116,8 @@ const Records: React.FC & {
           </>
         ) : (
           <>
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
+            <div id='sessionStat'
+              className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
               <StatCard
                 icon={<Users className='w-5 h-5' />}
                 label="Participants" value={selectedSession.participantCount}
@@ -958,9 +1133,9 @@ const Records: React.FC & {
             </div>
 
             {/* Session Tip Box */}
-            <div className='w-full bg-gradient-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
+            <div id='sessionTip' className='w-full bg-linear-to-r from-[#1a7368]/10 to-[#731a25]/10 border border-[#1a7368]/30 rounded-xl p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
-                <AlertCircle className='w-5 h-5 text-[#1a7368] flex-shrink-0 mt-0.5' />
+                <AlertCircle className='w-5 h-5 text-[#1a7368] shrink-0 mt-0.5' />
                 <div className='flex-1'>
                   <h3 className='font-semibold text-sm sm:text-base mb-1'>Session Context</h3>
                   <p className='text-xs sm:text-sm text-gray-300 leading-relaxed'>
@@ -982,82 +1157,84 @@ const Records: React.FC & {
                   <p className='text-xs text-gray-400 mt-1 mb-4'>Distribution across 5-minute intervals</p>
                 </div>
                 {timelineData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <AreaChart data={timelineData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2d2d2d" />
-                      <XAxis dataKey="time" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                      <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend
-                        wrapperStyle={{ fontSize: '12px' }}
-                        onMouseEnter={(e) => setHoveringEmotion(String(e.dataKey))}
-                        onMouseLeave={() => setHoveringEmotion(null)}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="happiness"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.happiness}
-                        fill={EMOTION_COLORS.happiness}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="neutral"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.neutral}
-                        fill={EMOTION_COLORS.neutral}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="fear"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.fear}
-                        fill={EMOTION_COLORS.fear}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="surprise"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.surprise}
-                        fill={EMOTION_COLORS.surprise}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="sadness"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.sadness}
-                        fill={EMOTION_COLORS.sadness}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="anger"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.anger}
-                        fill={EMOTION_COLORS.anger}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 0.8 : 0.2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="disgust"
-                        stackId="1"
-                        stroke={EMOTION_COLORS.disgust}
-                        fill={EMOTION_COLORS.disgust}
-                        strokeOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 1 : 0.3}
-                        fillOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 0.8 : 0.2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <div id='sessionTimeline'>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <AreaChart data={timelineData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2d2d2d" />
+                        <XAxis dataKey="time" stroke="#9ca3af" style={{ fontSize: '12px' }} />
+                        <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend
+                          wrapperStyle={{ fontSize: '12px' }}
+                          onMouseEnter={(e) => setHoveringEmotion(String(e.dataKey))}
+                          onMouseLeave={() => setHoveringEmotion(null)}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="happiness"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.happiness}
+                          fill={EMOTION_COLORS.happiness}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'happiness' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="neutral"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.neutral}
+                          fill={EMOTION_COLORS.neutral}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'neutral' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="fear"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.fear}
+                          fill={EMOTION_COLORS.fear}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'fear' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="surprise"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.surprise}
+                          fill={EMOTION_COLORS.surprise}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'surprise' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="sadness"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.sadness}
+                          fill={EMOTION_COLORS.sadness}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'sadness' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="anger"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.anger}
+                          fill={EMOTION_COLORS.anger}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'anger' ? 0.8 : 0.2}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="disgust"
+                          stackId="1"
+                          stroke={EMOTION_COLORS.disgust}
+                          fill={EMOTION_COLORS.disgust}
+                          strokeOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 1 : 0.3}
+                          fillOpacity={!hoveringEmotion || hoveringEmotion === 'disgust' ? 0.8 : 0.2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 ) : (
                   <div className='h-full flex items-center justify-center text-gray-500'>No timeline data available</div>
                 )}
@@ -1065,45 +1242,49 @@ const Records: React.FC & {
 
               {/* Session Engagement Assessment */}
               <div className='lg:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[250px]'>
-                <h3 className='text-sm font-semibold mb-2'>Session Engagement</h3>
-                <p className='text-xs text-gray-400 mb-4'>Grouped emotion analysis</p>
-                <div className='space-y-3 text-sm'>
-                  {sessionEngagement.map(item => (
-                    <div key={item.name}>
-                      <div className='flex justify-between mb-2'>
-                        <span>{item.name}</span>
-                        <span className='text-gray-400'>{item.percent}%</span>
+                <div id='sessionEngagement'>
+                  <h3 className='text-sm font-semibold mb-2'>Session Engagement</h3>
+                  <p className='text-xs text-gray-400 mb-4'>Grouped emotion analysis</p>
+                  <div className='space-y-3 text-sm'>
+                    {sessionEngagement.map(item => (
+                      <div key={item.name}>
+                        <div className='flex justify-between mb-2'>
+                          <span>{item.name}</span>
+                          <span className='text-gray-400'>{item.percent}%</span>
+                        </div>
+                        <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
+                          <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
+                        </div>
                       </div>
-                      <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
-                        <div className='h-2 rounded-full transition-all' style={{ width: `${item.percent}%`, backgroundColor: item.color }}></div>
-                      </div>
+                    ))}
+                    <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
+                      <p className='text-xs text-gray-500 leading-relaxed'>
+                        <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
+                        <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
+                        <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
+                      </p>
                     </div>
-                  ))}
-                  <div className='mt-4 pt-4 border-t border-[#2d2d2d]'>
-                    <p className='text-xs text-gray-500 leading-relaxed'>
-                      <span className='text-green-400'>Positive:</span> Happiness, Surprise<br />
-                      <span className='text-gray-400'>Neutral:</span> Neutral expressions<br />
-                      <span className='text-red-400'>Negative:</span> Sadness, Anger, Disgust, Fear
-                    </p>
                   </div>
                 </div>
               </div>
 
               <div className='lg:col-span-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[250px]'>
-                <h3 className='text-lg font-semibold mb-2'>Session Distribution</h3>
-                <p className='text-xs text-gray-400 mb-4'>All detected emotions</p>
-                <div className='space-y-2 text-sm'>
-                  {sessionEmotionData.map(item => (
-                    <div key={item.name}>
-                      <div className='flex justify-between mb-1'>
-                        <span className='capitalize'>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
-                        <span className='text-gray-400'>{item.value} ({item.percent}%)</span>
+                <div id='sessionDistribution'>
+                  <h3 className='text-lg font-semibold mb-2'>Session Distribution</h3>
+                  <p className='text-xs text-gray-400 mb-4'>All detected emotions</p>
+                  <div className='space-y-2 text-sm'>
+                    {sessionEmotionData.map(item => (
+                      <div key={item.name}>
+                        <div className='flex justify-between mb-1'>
+                          <span className='capitalize'>{EMOTION_EMOJIS[item.name as keyof typeof EMOTION_EMOJIS]} {item.name}</span>
+                          <span className='text-gray-400'>{item.value} ({item.percent}%)</span>
+                        </div>
+                        <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
+                          <div className='h-2 rounded-full' style={{ width: `${item.percent}%`, backgroundColor: EMOTION_COLORS[item.name as keyof typeof EMOTION_COLORS] }}></div>
+                        </div>
                       </div>
-                      <div className='w-full bg-[#2d2d2d] rounded-full h-2'>
-                        <div className='h-2 rounded-full' style={{ width: `${item.percent}%`, backgroundColor: EMOTION_COLORS[item.name as keyof typeof EMOTION_COLORS] }}></div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1113,7 +1294,7 @@ const Records: React.FC & {
                   <TrendingUp className='w-5 h-5 text-blue-400' />
                   <h3 className='text-lg font-semibold'>Session Insights</h3>
                 </div>
-                <div className='space-y-3'>
+                <div id='sessionInsights' className='space-y-3'>
                   {sessionRecommendations.map((rec, index) => (
                     <div key={index} className={`p-4 rounded-lg border ${rec.type === 'success' ? 'bg-green-500/10 border-green-500/30' :
                       rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' :
@@ -1130,7 +1311,7 @@ const Records: React.FC & {
               <div className='lg:col-span-4 bg-[#1d1d1d] border border-[#2d2d2d] rounded-xl p-4 sm:p-6 min-h-[200px]'>
                 <h3 className='text-lg font-semibold mb-2'>Peak Moments</h3>
                 <p className='text-xs text-gray-400 mb-4'>Highest recorded instances</p>
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-3 text-sm'>
+                <div id='sessionMoments' className='grid grid-cols-1 md:grid-cols-3 gap-3 text-sm'>
                   {timelineData.length > 0 ? (
                     <>
                       {(() => {

@@ -1,82 +1,139 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><base href="/"/><title>VirtuSense</title><script>(function() {
-        const ua = navigator.userAgent || navigator.vendor || window.opera;
-        const isFB = (ua.indexOf('FBAN') > -1) || (ua.indexOf('FBAV') > -1);
-        const isMessenger = (ua.indexOf('MessengerLite') > -1) || (ua.indexOf('FB_IAB/MESSENGER') > -1);
-        const isIG = (ua.indexOf('Instagram') > -1);
-        
-        if (isFB || isMessenger || isIG) {
-          document.addEventListener('DOMContentLoaded', function() {
-            // Add toast animation CSS
-            const style = document.createElement('style');
-            style.textContent = '@keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }';
-            document.head.appendChild(style);
-            
-            document.getElementById('react-app').innerHTML = `
-              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;background:#1c1c1b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-                <div style="background:white;border-radius:8px;padding:30px;max-width:400px;background:#1d1d1d;border:1px solid #2d2d2d;color:white;">
-                  <h2 style="margin-bottom:16px;">⚠️ Incompatible Browser</h2>
-                  <p style="color:#99a1af;margin-bottom:24px;line-height:1.5">
-                    This website isn't compatible with Facebook/Messenger's in-app browser.
-                  </p>
-                  <p style="margin-bottom:16px;font-weight:bold">
-                    Please open this link in Chrome, Safari, Edge, or any external browser.
-                  </p>
-                  <button id="copyBtn" style="background:#1a7368;border:none;border-radius:6px;padding:12px 24px;font-size:15px;font-weight:bold;cursor:pointer;width:100%">
-                    Copy Link
-                  </button>
-                </div>
-                <div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1d1d1d;color:white;border:1px solid #2d2d2d;padding:12px 24px;border-radius:8px;font-size:14px;box-shadow:0 4px 6px rgba(0,0,0,0.3);z-index:1000;animation:slideUp 0.3s ease">
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="VirtuSense - Video conferencing with real-time emotion detection and analysis. Understand participant engagement and emotional responses during online meetings and virtual events"><script>// Initialize Trusted Types policy to satisfy CSP requirements
+    if (window.trustedTypes && trustedTypes.createPolicy) {
+      try {
+        trustedTypes.createPolicy('default', {
+          createHTML: (string) => string,
+          createScriptURL: (string) => string,
+          createScript: (string) => string
+        });
+        console.log('✅ Trusted Types policy initialized');
+      } catch (e) {
+        // Policy might already exist, that's okay
+        if (e.name !== 'DataCloneError') {
+          console.warn('Trusted Types policy warning:', e.message);
+        }
+      }
+    }</script><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><base href="/"/><title>VirtuSense</title><script>(function () {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+      // Enhanced detection for iOS and Android
+      const isFB = (ua.indexOf('FBAN') > -1) || (ua.indexOf('FBAV') > -1) || (ua.indexOf('FB_IAB') > -1);
+      const isMessenger = (ua.indexOf('MessengerLite') > -1) || (ua.indexOf('FB_IAB/MESSENGER') > -1) || (ua.indexOf('MESSENGER') > -1);
+      const isIG = (ua.indexOf('Instagram') > -1);
+
+      // Additional iOS-specific check
+      const isIOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(ua);
+      const isFBiOS = isIOSWebView && (isFB || isMessenger || isIG);
+
+      if (isFB || isMessenger || isIG || isFBiOS) {
+
+        // Function to render the blocking UI
+        function showBlockingUI() {
+          // Add toast animation CSS
+          const style = document.createElement('style');
+          style.textContent = '@keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }';
+          document.head.appendChild(style);
+
+          const appDiv = document.getElementById('react-app');
+          if (appDiv) {
+            appDiv.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;background:#1c1c1b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+                  <div style="background:white;border-radius:8px;padding:30px;max-width:400px;background:#1d1d1d;border:1px solid #2d2d2d;color:white;">
+                    <h2 style="margin-bottom:16px;">⚠️ Incompatible Browser</h2>
+                    <p style="color:#99a1af;margin-bottom:24px;line-height:1.5">
+                      This website isn't compatible with Facebook/Messenger's in-app browser.
+                    </p>
+                    <p style="margin-bottom:16px;font-weight:bold">
+                      Please open this link in Chrome, Safari, Edge, or any external browser.
+                    </p>
+                    <button id="copyBtn" style="background:#1a7368;border:none;border-radius:6px;padding:12px 24px;font-size:15px;font-weight:bold;cursor:pointer;width:100%;color:white">
+                      Copy Link
+                    </button>
+                  </div>
+                  <div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1d1d1d;color:white;border:1px solid #2d2d2d;padding:12px 24px;border-radius:8px;font-size:14px;box-shadow:0 4px 6px rgba(0,0,0,0.3);z-index:1000;animation:slideUp 0.3s ease">
                   Copied to Clipboard
+                  </div>
                 </div>
-              </div>
-            `;
-            
-            // Add toast functionality
-            setTimeout(function() {
+              `;
+
+            // Add copy functionality
+            setTimeout(function () {
               const btn = document.getElementById('copyBtn');
               const toast = document.getElementById('toast');
-              
-              btn.addEventListener('click', function() {
-                navigator.clipboard.writeText(window.location.href)
-                  .then(function() {
-                    // Show toast
-                    toast.style.display = 'block';
-                    setTimeout(function() {
-                      toast.style.display = 'none';
-                    }, 3000);
-                  })
-                  .catch(function() {
-                    prompt('Copy this link:', window.location.href);
-                  });
-              });
+
+              if (btn && toast) {
+                btn.addEventListener('click', function () {
+                  // iOS-friendly clipboard handling
+                  const url = window.location.href;
+
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url)
+                      .then(function () {
+                        toast.style.display = 'block';
+                        setTimeout(function () {
+                          toast.style.display = 'none';
+                        }, 3000);
+                      })
+                      .catch(function () {
+                        // Fallback for iOS
+                        fallbackCopy(url);
+                      });
+                  } else {
+                    fallbackCopy(url);
+                  }
+                });
+              }
+
+              function fallbackCopy(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+
+                try {
+                  document.execCommand('copy');
+                  toast.style.display = 'block';
+                  setTimeout(function () {
+                    toast.style.display = 'none';
+                  }, 3000);
+                } catch (err) {
+                  prompt('Copy this link:', text);
+                }
+
+                document.body.removeChild(textarea);
+              }
             }, 100);
-          });
+          }
         }
-      })();</script></head><body><style>/* .video-container > *{
-            background-color: #000 !important;
 
+        // Handle both DOMContentLoaded and immediate execution
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', showBlockingUI);
+        } else {
+          // DOM already loaded (common in iOS)
+          showBlockingUI();
         }
-        .video-container video{
-            background-color: #000;
-        }
-        .video-container{
-            background-color: #000;
-        } */
-      /* *:active {
-            outline: none;
-        } */
-      /* Webkit (Chrome, Safari) */
-      ::-webkit-scrollbar {
-        width: 0px;
+
+        // Failsafe: try again after a short delay if element wasn't found
+        setTimeout(function () {
+          if (document.getElementById('react-app') && !document.getElementById('copyBtn')) {
+            showBlockingUI();
+          }
+        }, 50);
       }
+    })();</script></head><body><style>::-webkit-scrollbar {
+      width: 0px;
+    }
 
-      ::-webkit-scrollbar-track {
-        background-color: transparent;
-      }
+    ::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
 
-      /** to hide screenshare fullscreen play/pause button  */
-      video::-webkit-media-controls-play-button {
-        display: none !important;
-      }</style><div id="react-app" style="height: 100vh;
+    video::-webkit-media-controls-play-button {
+      display: none !important;
+    }</style><div id="react-app" style="height: 100vh;
         max-height: -webkit-fill-available;
-        display: flex;"></div><script src="main.js"></script></body></html>
+        display: flex;"></div><script src="/runtime.0cca311c76571a938ae0.js"></script><script src="/react-2594363e.920d7908ce4a743c13d9.js"></script><script src="/react-3e5eb623.b29720b3497cc09b5f26.js"></script><script src="/react-1a955d9b.01e8c27090329b6e2777.js"></script><script src="/react-ad5ad17b.af12ac5217b0247e60b0.js"></script><script src="/react-7d212117.86189ff5a3d85f47cc76.js"></script><script src="/react-e5bca7e4.8d0eacdaf715c26867e2.js"></script><script src="/react-f9e11c02.87fd116917ed3c3561b4.js"></script><script src="/react-router.bd45845a1fa75c8ea48c.js"></script><script src="/agora-virtual-bg.18c41b5db139a6e6a596.js"></script><script src="/agora-rtm.de2d3eb7e57d96176615.js"></script><script src="/agora-rtc.e5164ae31b66b8bada12.js"></script><script src="/lucide-6036c5b5.a15e0589ae83381b9ae3.js"></script><script src="/lucide-6def20dd.aab1d7dd440ba1bf978f.js"></script><script src="/lucide-e1f96d3a.bab2054e115d6013fd5d.js"></script><script src="/lucide-c17fcdb7.5c93122cdf5bc2fc54ed.js"></script><script src="/lucide-41556f04.143ec62b2ed4e7479f76.js"></script><script src="/lucide-463ddacd.51495367ee0d16d3379e.js"></script><script src="/lucide-be7dc123.0abb16616af340bc0149.js"></script><script src="/lucide-f3b8a727.b2890431eda6079be011.js"></script><script src="/lucide-06246285.2750c151799bffd01619.js"></script><script src="/lucide-d1ddde9f.1e4e300e9343d874eb8e.js"></script><script src="/lucide-32eca13c.09340a9d0eee1adfdb66.js"></script><script src="/firebase-3837499c.04bda4fe8250cb844a0d.js"></script><script src="/firebase-1e424cfb.fd1bb86bd2d2376b6224.js"></script><script src="/firebase-1b4271fd.c479068ac0579742f8c9.js"></script><script src="/firebase-0520917b.f33131adb0524da725ff.js"></script><script src="/firebase-d3094b5a.a0054b865bc09d3d8202.js"></script><script src="/vendor.splinetool-158a271e.23b5befc690ebab43b73.js"></script><script src="/vendor.splinetool-f47f3589.2121378df3320441a9f5.js"></script><script src="/vendor.splinetool-fc880ecf.467e9327e9286f7e85aa.js"></script><script src="/vendor.splinetool-e1010584.190153df758c3c20671f.js"></script><script src="/vendor.splinetool-6858964f.da4118fe0d588fc33fad.js"></script><script src="/vendor.splinetool-268b430c.9ccabc1a5f391266ae71.js"></script><script src="/vendor.splinetool-e73f6039.a18e0d1592e3de9a8f2a.js"></script><script src="/vendor.splinetool-76d9d857.81f5f35ca0d69ad3dc66.js"></script><script src="/vendor.mathjs-b46bb266.2153ea3ca0ccdfc31e49.js"></script><script src="/vendor.mathjs-076ca7a4.431be38e198fb1ae891e.js"></script><script src="/vendor.mathjs-ce08fe7f.11ed463b8ff98ff1899d.js"></script><script src="/vendor.mathjs-9ce7edff.7679a2d11c802c6503b9.js"></script><script src="/vendor.mathjs-66605ba0.0526b39e37b413776c2a.js"></script><script src="/vendor.mathjs-3019475d.0b257befe2d21022a950.js"></script><script src="/vendor.mathjs-6356dce4.9e0b5518dc018a18a9ad.js"></script><script src="/vendor.mathjs-2a38581b.5745ad314352ef41d8a6.js"></script><script src="/vendor.mathjs-2e45cfcb.870954a417e30c3fcc79.js"></script><script src="/vendor.mathjs-6cbe2a67.a9c6a6ec4b16135cf59b.js"></script><script src="/vendor.mathjs-a85a506d.fffa4ceae08ec92e439d.js"></script><script src="/vendor.mathjs-dffd285b.abb9cea988511e075e82.js"></script><script src="/vendor.mathjs-43ce5d97.65f90b4bcfd20872a68d.js"></script><script src="/vendor.mathjs-23893ee7.464271c1470581f1475a.js"></script><script src="/vendor.mathjs-8ebdc06b.d46230e117724ec5aa25.js"></script><script src="/vendor.mathjs-32a2beaa.663badf2799ff1fdb865.js"></script><script src="/vendor.mathjs-5091a336.df31ae4af5cb5226e723.js"></script><script src="/vendor.mathjs-873abd8e.877444907aaecbd7776c.js"></script><script src="/vendor.mathjs-e0acb2c0.cf1a4096f09bf8eb36f8.js"></script><script src="/vendor.mathjs-2ba28b37.a7c8ad07499457d4e3ad.js"></script><script src="/vendor.mathjs-e266868c.d1bb6fefe6d2b69bd11e.js"></script><script src="/vendor.core-js-5e25e51c.bd4b47a6f411e359e176.js"></script><script src="/vendor.core-js-3062047c.6df15d354a8dab44ad43.js"></script><script src="/vendor.recharts-75675137.41cf5494049b9c342e23.js"></script><script src="/vendor.recharts-fc70f967.c58acf92d41d849f4679.js"></script><script src="/vendor.recharts-2f3edcb6.f78a4e2f08680efc78c2.js"></script><script src="/vendor.recharts-b08eb7a4.9cc1ee7499f6040d0902.js"></script><script src="/vendor.recharts-b873563c.ba6ccdeace511e3a66fb.js"></script><script src="/vendor.recharts-35d3f40d.f830236d42732bab97ec.js"></script><script src="/vendor.recharts-2f53be7d.d83c45fb5f15031090dd.js"></script><script src="/vendor.recharts-6c7da78a.8b630754288f57672a36.js"></script><script src="/vendor.recharts-00f04d1a.ffb09ed6d26c5167dcdf.js"></script><script src="/vendor.datadog.0aa19579d4bb73036f8c.js"></script><script src="/vendor.es-toolkit.ba9c03aaf7efc21b4dad.js"></script><script src="/vendor.d3-array.9ac00eff62394b2b2e4f.js"></script><script src="/vendor.d3-shape.8acc6cf8c9810d8e9445.js"></script><script src="/vendor.babel.d22475ee9893e20dc7cf.js"></script><script src="/vendor.xstate.f15c239b2642d523f641.js"></script><script src="/vendor.protobufjs.81af9e0317a7729d2e36.js"></script><script src="/vendor.juggle.170a755f76c72ed35d52.js"></script><script src="/vendor.d3-scale.ada4708aa8218dd317bf.js"></script><script src="/vendor.white-web-sdk-f5cfbcad.d2c439dc13ee7189c678.js"></script><script src="/vendor.white-web-sdk-d9104a69.4e3626a9dfafd862af0e.js"></script><script src="/vendor.react-icons-d280a8e4.fa7c79ea445385fedb94.js"></script><script src="/vendor.react-icons-5bbbd594.3d651b6408fcb05b2fbc.js"></script><script src="/vendor.react-icons-97db7529.6bb2129c546f3dde48b9.js"></script><script src="/vendor.react-icons-a84fa28c.f40e76fe670163f45098.js"></script><script src="/vendor.react-icons-9c1a6631.ca83631de6a48b7c4b9d.js"></script><script src="/vendor.react-icons-59a2c4d8.6f2c7f3829c501b2f4cd.js"></script><script src="/vendor.react-icons-84e9b529.9fcc9660c3e5b460ffc3.js"></script><script src="/vendor.react-native-vector-icons.60f3d18ead94466a5a3e.js"></script><script src="/vendor.seedrandom.5c3de586729fe777708e.js"></script><script src="/vendor.bezier-js.9d1585cf51c4cab8c211.js"></script><script src="/vendor.d3-time-format.f3d3f99fb9059d457bb9.js"></script><script src="/vendor.p-queue.9a8189d2028de6e48a7c.js"></script><script src="/vendor.text-encoding-0832bd07.51f91b09f20f9f49b978.js"></script><script src="/vendor.text-encoding-93fef159.1e92a12fbe454f87033b.js"></script><script src="/vendor.agora-extension-ai-denoiser.9a19f1366578399b67c8.js"></script><script src="/vendor.reduxjs.73b49f081058aacee5e5.js"></script><script src="/vendor.netless.df543eac6780915adcd9.js"></script><script src="/vendor.tailwind-merge.71bbb6cd844fa6cf0f6b.js"></script><script src="/vendor.react-use-gesture.e0e09b642633c6406150.js"></script><script src="/vendor.react-tooltip.bbabeda40acb840b1f61.js"></script><script src="/vendor.react-spring.0005e29f1a255578b143.js"></script><script src="/vendor.mobx.ede48f411399f99aff9d.js"></script><script src="/vendor.emoji-picker-react.d4d653f3365173bd3431.js"></script><script src="/vendor.decimal.js.4fe8262b258c02b54b6b.js"></script><script src="/vendor.decimal.js-light.346080914f4637a052ce.js"></script><script src="/vendor.buffer.99d8d912edc15e797d1d.js"></script><script src="/vendor.agora-extension-beauty-effect.20da17881ada6a732e8b.js"></script><script src="/vendor.agora-chat.3e84128330b5ce250109.js"></script><script src="/main-bde52cb3.4cb978923200a2ab59d6.js"></script><script src="/main-9a8b795a.e958dca2b15e7e567295.js"></script><script src="/main-43dd7041.3895d09308892ef245fb.js"></script><script src="/main-536eaa00.e73ce7f887dac3925677.js"></script><script src="/main-efdee510.be2c8f9629e0b7ce9f9f.js"></script><script src="/main-9db5d9a1.09633f423848eb64f885.js"></script><script src="/main-3113a0cb.d5ba7843cadb691ebf1b.js"></script><script src="/main-0bc0478e.c9fcfc933e10181d1aeb.js"></script><script src="/main-e96e9bea.27a49117fe8b609b4483.js"></script><script src="/main-7a1b9656.c1be45e7dddde1138844.js"></script><script src="/main-fa97f064.65a25d3d28048ac14a84.js"></script><script src="/main-f16aa68b.cfc52aa0c64ace1cbf6c.js"></script><script src="/main-b06fa41f.f5ecd205e92f2ea4f546.js"></script><script src="/main-f0a0077e.b5cef5087a7b068c9878.js"></script><script src="/main-dd8cbad4.d557f141fff65cb1a868.js"></script><script src="/main-d91a9049.79170b8298195187c0c3.js"></script><script src="/main-bec83d1f.3fd95db5528da6cb5a8d.js"></script><script src="/main-f10c812e.f5934173fdb09d2f73db.js"></script><script src="/main-e9c37989.f7def073ab9f79b40cf3.js"></script><script src="/main-a434fa0a.b097d088a9273f924b76.js"></script><script src="/main-555aa8ec.d29b978d43af446cc7cb.js"></script><script src="/main-7780e42d.78294657d9ed5d80498f.js"></script><script src="/main-cb4d3354.98478b9ba880245ed2eb.js"></script><script src="/main-c3f783f9.ce0d5d756ce8d4a5f4eb.js"></script><script src="/main-4429d0b3.aa02baef7597203a26a9.js"></script><script src="/main-735069d4.f6b9495a5ab73dee8b1c.js"></script><script src="/main-09259b8d.928a9d009a06049892ea.js"></script><script src="/main-2e21e485.4c54d60ab7b4cd8613ba.js"></script><script src="/main-f891e72f.798aa4926a443b547d51.js"></script><script src="/main-768d8cad.4c170236ff1fd5ffda02.js"></script><script src="/main-276a3a07.bf66af6de98a14660033.js"></script><script src="/main-bc4876c2.cc9a1d098d525795b954.js"></script><script src="/main-d4e20dd8.7cba36956ed74db0b4f4.js"></script><script src="/main-f5466c8f.75321b5489e09224e411.js"></script><script src="/main-102ff935.43d5e89836fcbe6733ff.js"></script><script src="/main-9747c7e5.06d6ca55794e88fdba7c.js"></script><script src="/main-85feabb3.84133832d374f7e920c8.js"></script><script src="/main-d92708f2.bbac192bc06356bb49e3.js"></script><script src="/main-0c4edc2c.c9c0658f94326dc5901c.js"></script><script src="/main-c9eae107.240cb603a1cddf3bbdba.js"></script><script src="/main-ed0c95fe.096108ee2fc79dd23920.js"></script><script src="/main-830634ab.6a77cc39665f5bea8c5c.js"></script><script src="/main-10a0b995.5af1b8a6fa21aa98dc88.js"></script><script src="/main-78093f2b.d15b7bbf7c9de600d4a1.js"></script><script src="/main-182f79bf.459284537c8616161d22.js"></script></body></html>

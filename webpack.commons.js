@@ -18,15 +18,15 @@ module.exports = {
   plugins: [
     // Using html webpack plugin to utilize our index.html
     !isSdk &&
-      new HtmlWebpackPlugin({
-        title: configVars['$config.APP_NAME'],
-        template: isElectron ? 'electron/index.html' : 'web/index.html',
-      }),
+    new HtmlWebpackPlugin({
+      title: configVars['$config.APP_NAME'],
+      template: isElectron ? 'electron/index.html' : 'web/index.html',
+    }),
     isDevelopment &&
-      !isSdk &&
-      new ReactRefreshWebpackPlugin({
-        overlay: false,
-      }),
+    !isSdk &&
+    new ReactRefreshWebpackPlugin({
+      overlay: false,
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -53,6 +53,7 @@ module.exports = {
         __dirname,
         'bridge/rtm/web/index.ts',
       ),
+      'core-js': path.resolve(__dirname, 'node_modules/core-js'),
     },
     // Adds platform specific extensions and OS specific extensions
     // .web.tsx works for web specific code
@@ -75,7 +76,7 @@ module.exports = {
     ].filter(Boolean),
   },
   // Enable source maps during development
-  devtool: isDevelopment ? 'eval-cheap-module-source-map' : undefined,
+  devtool: isDevelopment ? 'eval-cheap-module-source-map' : false,
   module: {
     rules: [
       {
@@ -100,8 +101,15 @@ module.exports = {
                 '@babel/preset-env', // smartly transforms js into es5-es6
                 {
                   targets: {
-                    node: 'current',
+                    browsers: [
+                      'last 2 Chrome versions',
+                      'last 2 Firefox versions',
+                      'last 2 Safari versions',
+                      'last 2 Edge versions'
+                    ]
                   },
+                  useBuiltIns: 'usage',
+                  corejs: 3,
                 },
               ],
             ],

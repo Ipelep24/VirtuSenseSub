@@ -1,3 +1,4 @@
+//@ts-nocheck
 import createRetryFetch from 'fetch-retry';
 import {isWeb} from '../../utils/common';
 

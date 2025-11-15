@@ -14,6 +14,7 @@
     "web": "cross-env TARGET=web NODE_ENV=development webpack-dev-server --hot --open --config webpack.web.config.js\"",
     "ts": "cross-env TARGET=web NODE_ENV=production webpack --config webpack.ts.config.js",
     "web:build": "cross-env TARGET=web NODE_ENV=production webpack --config webpack.web.config.js",
+    "web:analyze": "cross-env TARGET=web NODE_ENV=production webpack --config webpack.web.config.js --analyze",
     "web-sdk": "cross-env TARGET=wsdk NODE_ENV=development gulp webSdk",
     "web-sdk:build": "cross-env TARGET=wsdk NODE_ENV=production gulp webSdk",
     "vercel-build": "npm install --legacy-peer-deps && npm run web:build",
@@ -191,6 +192,7 @@
     "ts-loader": "^8.3.0",
     "typescript": "4.8.4",
     "webpack": "5.72.0",
+    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "4.8.1",
     "webpack-merge": "5.8.0",
@@ -209,7 +211,8 @@
     },
     "@bam.tech/react-native-make": {
       "sharp": "0.33.5"
-    }
+    },
+    "core-js": "^3.42.0"
   },
   "engines": {
     "node": ">=18"

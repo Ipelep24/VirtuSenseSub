@@ -7,8 +7,8 @@ import React, {
   useContext,
   useRef,
 } from 'react';
-import {useHistory, useLocation} from '../components/Router';
-import {useIDPAuth} from './useIDPAuth';
+import { useHistory, useLocation } from '../components/Router';
+import { useIDPAuth } from './useIDPAuth';
 import Loading from '../subComponents/Loading';
 import useTokenAuth from './useTokenAuth';
 import Toast from '../../react-native-toast-message';
@@ -18,7 +18,7 @@ import {
   GET_UNAUTH_FLOW_API_ENDPOINT,
 } from './config';
 import isSDK from '../utils/isSDK';
-import {Linking} from 'react-native';
+import { Linking } from 'react-native';
 import {
   isAndroid,
   isIOS,
@@ -30,15 +30,15 @@ import {
 import SDKMethodEventsManager from '../utils/SdkMethodEvents';
 import StorageContext from '../components/StorageContext';
 import UserCancelPopup from './UserCancelPopup';
-import {exitApp} from './openIDPURL';
-import {useString} from '../utils/useString';
+import { exitApp } from './openIDPURL';
+import { useString } from '../utils/useString';
 import {
   authSessionTimeoutToastHeading,
   loadingText,
 } from '../language/default-labels/commonLabels';
-import {LogSource, logger} from '../logger/AppBuilderLogger';
+import { LogSource, logger } from '../logger/AppBuilderLogger';
 import getUniqueID from '../utils/getUniqueID';
-import {useIsRecordingBot} from '../subComponents/recording/useIsRecordingBot';
+import { useIsRecordingBot } from '../subComponents/recording/useIsRecordingBot';
 import SDKEvents from '../utils/SdkEvents';
 import LocalEventEmitter, {
   LocalEventsEnum,
@@ -67,19 +67,19 @@ const AuthProvider = (props: AuthProviderProps) => {
   const regEvent = useRef(true);
   const refreshTimeoutWeb = useRef(null);
   const [showNativePopup, setShowNativePopup] = useState(false);
-  const {setStore, store} = useContext(StorageContext);
+  const { setStore, store } = useContext(StorageContext);
   const [authenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [returnTo, setReturnTo] = useState('');
   // auth hooks
-  const {enableIDPAuth, idpLogout} = useIDPAuth();
-  const {enableTokenAuth, tokenLogout} = useTokenAuth();
+  const { enableIDPAuth, idpLogout } = useIDPAuth();
+  const { enableTokenAuth, tokenLogout } = useTokenAuth();
   // routing
   const history = useHistory();
   const location = useLocation();
   // client
-  const {isRecordingBot} = useIsRecordingBot();
+  const { isRecordingBot } = useIsRecordingBot();
   const indexesOf = (arr, item) =>
     arr.reduce((acc, v, i) => (v === item && acc.push(i), acc), []);
   const nonprodenv = ['dev', 'staging', 'preprod', 'test'];
@@ -229,7 +229,7 @@ const AuthProvider = (props: AuthProviderProps) => {
         try {
           logger.log(LogSource.Internals, 'AUTH', 'SDK login method called');
           setStore(prevState => {
-            return {...prevState, token};
+            return { ...prevState, token };
           });
           setTimeout(async () => {
             enableTokenAuth(token)
@@ -315,7 +315,7 @@ const AuthProvider = (props: AuthProviderProps) => {
   async function getUserDetails() {
     const requestId = getUniqueID();
     const startReqTs = Date.now();
-    //fetch user details
+
     logger.log(
       LogSource.NetworkRest,
       'user_details',
@@ -338,6 +338,43 @@ const AuthProvider = (props: AuthProviderProps) => {
           }),
         },
       });
+
+      // Check if response is ok BEFORE parsing JSON
+      if (!res.ok) {
+        const endRequestTs = Date.now();
+
+        // 401 is expected when not authenticated - don't treat it as an error
+        if (res.status === 401) {
+          logger.log(
+            LogSource.NetworkRest,
+            'user_details',
+            'API user_details returned 401. User is not authenticated.',
+            {
+              status: res.status,
+              startReqTs,
+              endRequestTs,
+              latency: endRequestTs - startReqTs,
+              requestId,
+            },
+          );
+        } else {
+          logger.error(
+            LogSource.NetworkRest,
+            'user_details',
+            `API user_details failed with status ${res.status}`,
+            {
+              status: res.status,
+              startReqTs,
+              endRequestTs,
+              latency: endRequestTs - startReqTs,
+              requestId,
+            },
+          );
+        }
+
+        throw new Error(`HTTP ${res.status}`);
+      }
+
       const response = await res.json();
       if (response?.error) {
         throw response?.error;
@@ -346,7 +383,7 @@ const AuthProvider = (props: AuthProviderProps) => {
       logger.log(
         LogSource.NetworkRest,
         'user_details',
-        'API user_details query succesful. User is authenticated',
+        'API user_details query successful. User is authenticated',
         {
           responseData: response,
           startReqTs,
@@ -396,7 +433,7 @@ const AuthProvider = (props: AuthProviderProps) => {
       const token = urlParams.get('token');
       if (token) {
         setStore(prevState => {
-          return {...prevState, token};
+          return { ...prevState, token };
         });
         setTimeout(async () => {
           enableTokenAuth(token)
@@ -413,7 +450,7 @@ const AuthProvider = (props: AuthProviderProps) => {
       }
       // setIsAuthenticated(true);
       // setLoading(false);
-      return () => {};
+      return () => { };
     }
     //if application in authorization state then don't call authlogin
     logger.log(
@@ -483,10 +520,10 @@ const AuthProvider = (props: AuthProviderProps) => {
           isWeb()
             ? location.pathname
             : isDesktop()
-            ? history
-            : isIOS() || isAndroid()
-            ? deepLinkUrl
-            : '',
+              ? history
+              : isIOS() || isAndroid()
+                ? deepLinkUrl
+                : '',
           timeoutHeading,
         )?.then((response: any) => {
           logger.log(
@@ -559,7 +596,7 @@ const AuthProvider = (props: AuthProviderProps) => {
         LogSource.NetworkRest,
         'unauth_login',
         'API unauth_login Trying to authenticate user',
-        {requestId: requestId, startReqTs},
+        { requestId: requestId, startReqTs },
       );
       let user_id_unauth = null;
       try {
@@ -567,7 +604,7 @@ const AuthProvider = (props: AuthProviderProps) => {
           const urlParams = new URLSearchParams(window?.location?.search);
           user_id_unauth = urlParams.get('user_id');
         }
-      } catch (error) {}
+      } catch (error) { }
 
       fetch(GET_UNAUTH_FLOW_API_ENDPOINT(user_id_unauth), {
         credentials: 'include',
@@ -770,4 +807,4 @@ const AuthProvider = (props: AuthProviderProps) => {
 };
 const useAuth = () => React.useContext(AuthContext);
 
-export {AuthProvider, useAuth};
+export { AuthProvider, useAuth };

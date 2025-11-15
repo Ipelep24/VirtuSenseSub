@@ -35,8 +35,6 @@ const Dashboard: React.FC & {
                 <img
                     src={homeImage}
                     alt='Image'
-                    width={700}
-                    height={700}
                     className='w-3/4 h-auto rounded-md'
                 />
                 <div className='w-2/3'>

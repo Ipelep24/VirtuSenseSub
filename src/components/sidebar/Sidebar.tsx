@@ -70,7 +70,7 @@ const Sidebar: React.FC = () => {
             />
             <h1 className='text-lg font-normal gap-2 p-2'>VirtuSense</h1>
           </div>
-          <SidebarMenu />
+          <SidebarMenu onMobileClose={() => setIsMobileMenuOpen(false)} />
           <SidebarFooter />
         </nav>
       </div >

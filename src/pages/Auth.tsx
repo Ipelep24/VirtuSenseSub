@@ -77,13 +77,11 @@ const Auth = () => {
 
   return (
     <div className='flex w-screen h-screen gap-10 flex-col items-center justify-center text-white'>
-      <div className='sm:aspect-[5/3] p-2 h-60 sm:h-auto w-9/10 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
+      <div className='sm:aspect-5/3 p-2 h-60 sm:h-auto w-9/10 sm:w-120 lg:w-130 bg-[#1d1d1d] flex flex-col items-center justify-evenly rounded-md outline outline-[#2d2d2d]'>
         <div className='w-[80%] justify-start flex gap-2 items-center mt-4'>
           <img
             src={virtuSense}
             alt='logo'
-            width={40}
-            height={40}
             className='w-8 h-auto object-contain'
           />
           <h1 className='text-xl'>VirtuSense</h1>
@@ -101,8 +99,6 @@ const Auth = () => {
           <img
             src={googleIcon}
             alt="logo"
-            width={40}
-            height={40}
             className='w-5 h-auto object-contain'
           />
           <p className='truncate'>{user ? `Continue as ${user.displayName}` : 'Sign In'}</p>

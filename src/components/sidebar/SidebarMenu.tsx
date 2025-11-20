@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useHistory } from 'react-router-dom'
-import { GoHome } from 'react-icons/go';
-import { LuList } from 'react-icons/lu';
-import { MdReportGmailerrorred, MdOutlinePolicy, MdHelpOutline } from "react-icons/md";
-import { HiOutlineDocumentCheck } from "react-icons/hi2";
 import PrivacyPolicyModal from '../modals/PrivacyPolicyModalProps';
 import TermsOfServiceModal from '../modals/TermsOfServiceModalProps';
+import { CircleQuestionMark, GlobeLock, Home, List, OctagonAlert, ScrollText } from 'lucide-react';
 
 type NavItem = {
     label: string;
@@ -46,29 +43,29 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ onMobileClose }) => {
     }, []);
 
     const navItems: NavItem[] = [
-        { label: 'Home', path: '/', icon: GoHome as React.ComponentType<{ className?: string }> },
-        { label: 'Records', path: '/records', icon: LuList as React.ComponentType<{ className?: string }> },
+        { label: 'Home', path: '/', icon: Home },
+        { label: 'Records', path: '/records', icon: List },
     ];
 
     const actionItems: ActionItem[] = [
         {
             label: 'Report Problem',
-            icon: MdReportGmailerrorred as React.ComponentType<{ className?: string }>,
+            icon: OctagonAlert,
             onClick: () => history.push('/submit-ticket')
         },
         {
             label: 'Terms of Service',
-            icon: HiOutlineDocumentCheck as React.ComponentType<{ className?: string }>,
+            icon: ScrollText,
             onClick: () => setShowTerms(true)
         },
         {
             label: 'Privacy Policy',
-            icon: MdOutlinePolicy as React.ComponentType<{ className?: string }>,
+            icon: GlobeLock,
             onClick: () => setShowPrivacy(true)
         },
         {
             label: 'Help',
-            icon: MdHelpOutline as React.ComponentType<{ className?: string }>,
+            icon: CircleQuestionMark,
             onClick: () => {
                 const isOnRecords = location.pathname === '/records';
                 if (isOnRecords) {

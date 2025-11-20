@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { BsReverseLayoutSidebarReverse } from "react-icons/bs";
 import {
   Users,
   Clock,
@@ -9,7 +8,10 @@ import {
   Lightbulb,
   TrendingUp,
   AlertCircle,
-  Search
+  Search,
+  PanelRight,
+  ChevronLeft,
+  RotateCw
 } from 'lucide-react';
 import {
   PieChart,
@@ -30,7 +32,6 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { SidebarLayout } from './layout/SidebarLayout';
 import RecordSkeleton from '../components/skeleton/RecordSkeleton';
-import { MdChevronLeft, MdRefresh } from 'react-icons/md';
 import emptyState from '../assets/emptyState.png'
 import { truncate } from 'fs';
 import { se } from 'rn-emoji-keyboard';
@@ -315,9 +316,6 @@ const StatCard = ({ icon, label, value, sublabel = '' }) => (
 const Records: React.FC & {
   layout?: (page: React.ReactNode) => JSX.Element;
 } = () => {
-  const SidebarIcon = BsReverseLayoutSidebarReverse as React.ComponentType<{ className?: string; onClick?: () => void }>;
-  const ReturnIcon = MdChevronLeft as React.ComponentType<{ className?: string; onClick?: () => void }>;
-  const RefreshIcon = MdRefresh as React.ComponentType<{ className?: string; onClick?: () => void }>;
   const [hoveringEmotion, setHoveringEmotion] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
@@ -904,7 +902,7 @@ const Records: React.FC & {
               </>
             ) : (
               <div className='flex items-center'>
-                <RefreshIcon className='w-4 h-4 mt-1px' />
+                <RotateCw className='w-4 h-4 mt-1px' />
                 <span className='leading-none'>Try Again</span>
               </div>
             )}
@@ -945,7 +943,7 @@ const Records: React.FC & {
             <div className='flex items-center mr-10'>
               {selectedSession && (
                 <button onClick={() => setSelectedSessionId(null)} className='flex items-center text-sm text-gray-400 hover:text-white transition'>
-                  <ReturnIcon className='w-4 h-4 mt-0.5' />
+                  <ChevronLeft className='w-4 h-4 mt-0.5' />
                   <span className='leading-none whitespace-nowrap'>Back to Overview</span>
                 </button>
               )}
@@ -962,7 +960,7 @@ const Records: React.FC & {
                     </>
                   ) : (
                     <div className='flex items-center'>
-                      <RefreshIcon className='w-4 h-4 mt-px' />
+                      <RotateCw className='w-4 h-4 mt-px' />
                       <span className='leading-none'>Refresh</span>
                     </div>
                   )}
@@ -1361,7 +1359,7 @@ const Records: React.FC & {
           onClick={() => setIsOpen(!isOpen)}
           className='absolute top-4 -left-10 z-30 p-2 bg-[#1d1d1d] border border-[#2d2d2d] rounded-lg text-gray-400 hover:text-white transition shadow-[0_4px_6px_rgba(0,0,0,0.3)]'
         >
-          <SidebarIcon className='w-4 h-4' />
+          <PanelRight className='w-4 h-4' />
         </button>
 
         <div

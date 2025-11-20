@@ -591,6 +591,11 @@ export default class RtcEngine {
               timestamp: Timestamp.now(),
             });
 
+            console.log(
+              `😊 Emotion recorded: ${highestEmotion.emotion} ` +
+              `(confidence: ${(highestEmotion.confidence / 100).toFixed(2)}) `
+            );
+
             this.lastSavedEmotion = highestEmotion.emotion;
           }
         } else {

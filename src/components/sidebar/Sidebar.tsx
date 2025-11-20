@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import SidebarMenu from './SidebarMenu';
 import SidebarFooter from './SidebarFooter';
-import { IoIosMenu, IoIosClose } from "react-icons/io";
 import virtuSense from '../../assets/logo.png'
+import { Menu, X } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-
-  const MenuIcon = IoIosMenu as React.ComponentType<{ className?: string; onClick?: () => void }>;
-  const CloseIcon = IoIosClose as React.ComponentType<{ className?: string; onClick?: () => void }>;
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -31,7 +28,7 @@ const Sidebar: React.FC = () => {
           />
           <h1 className='text-xl font-semibold gap-2 p-2'>VirtuSense</h1>
         </div>
-        <MenuIcon
+        <Menu
           className='w-6 h-6 cursor-pointer'
           onClick={() => setIsMobileMenuOpen(true)}
         />
@@ -53,8 +50,8 @@ const Sidebar: React.FC = () => {
         >
           {/* Close Button */}
           <div className="flex justify-end mb-6">
-            <CloseIcon
-              className="w-8 h-8 cursor-pointer hover:text-gray-300 transition-colors"
+            <X
+              className="w-6 h-6 cursor-pointer hover:text-gray-300 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             />
           </div>

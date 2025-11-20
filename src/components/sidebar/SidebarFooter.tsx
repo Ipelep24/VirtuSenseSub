@@ -1,14 +1,13 @@
 import React from 'react'
 import { useAuth } from '../../pages/auth/AuthContext'
-import { RxExit } from "react-icons/rx";
 import { getAuth } from 'firebase/auth';
 import { useHistory } from 'react-router-dom';
 import Toast from '../../../react-native-toast-message';
+import { LogOut } from 'lucide-react';
 
 const SidebarFooter: React.FC = () => {
     const { googleUser } = useAuth()
     const history = useHistory()
-    const LogoutIcon = RxExit as React.ComponentType<{ className?: string; onClick?: () => void }>;
 
     const handleLogout = async () => {
         try {
@@ -53,7 +52,7 @@ const SidebarFooter: React.FC = () => {
                 className='py-2 mb-2 flex gap-2 items-center justify-center cursor-pointer text-gray-500 opacity-60 hover:text-gray-300 transition-colors'
                 onClick={() => handleLogout()}
             >
-                <LogoutIcon className='w-4 h-4' />
+                <LogOut className='w-4 h-4' />
                 <p className='text-sm block sm:hidden lg:block'>Logout</p>
             </div>
         </div>

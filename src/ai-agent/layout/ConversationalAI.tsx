@@ -1,4 +1,4 @@
-import React, {useContext, useEffect} from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -7,12 +7,12 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import {useSidePanel} from 'customization-api';
+import { useSidePanel } from 'customization-api';
 import ThemeConfig from '../../theme';
-import {AgentContext} from '../components/AgentControls/AgentContext';
-import {AgentState} from '../components/AgentControls/const';
-import {useIsAgentAvailable} from '../components/utils';
-import {isMobileUA, isAndroid, isIOS} from '../../utils/common';
+import { AgentContext } from '../components/AgentControls/AgentContext';
+import { AgentState } from '../components/AgentControls/const';
+import { useIsAgentAvailable } from '../components/utils';
+import { isMobileUA, isAndroid, isIOS } from '../../utils/common';
 //@ts-ignore
 import JoinCallIcon from '../assets/join-call.png';
 import {
@@ -22,22 +22,27 @@ import {
 } from '../components/ControlButtons';
 
 export default function ConversationalAI() {
-  const {setSidePanel} = useSidePanel();
-  const {agentConnectionState, toggleAgentConnection} =
+  const { setSidePanel } = useSidePanel();
+  const { agentConnectionState, toggleAgentConnection } =
     useContext(AgentContext);
+
+  const loadSpline = async (canvas: HTMLCanvasElement) => {
+    const { Application } = await import('@splinetool/runtime');
+    const spline = new Application(canvas);
+    return spline;
+  };
+
 
   useEffect(() => {
     if (!(isAndroid() || isIOS())) {
-      setTimeout(() => {
+      setTimeout(async () => {
         // make sure you have a canvas in the body
         const canvas = document?.getElementById(
           'ai-agent',
         ) as HTMLCanvasElement;
 
         if (canvas) {
-          const {Application} = require('@splinetool/runtime');
-          // start the application and load the scene
-          const spline = new Application(canvas);
+          const spline = await loadSpline(canvas);
           spline
             ?.load(
               'https://d1i64xs2div6cu.cloudfront.net/scene-250216.splinecode',
@@ -79,14 +84,14 @@ export default function ConversationalAI() {
             id="ai-agent"
             width="100%"
             height="100%"
-            style={{pointerEvents: 'none'}}
+            style={{ pointerEvents: 'none' }}
           />
         )}
       </View>
       <View style={styles.btnContainer}>
         {!isLoading &&
-        (agentConnectionState === 'AGENT_CONNECTED' ||
-          agentConnectionState === 'AGENT_DISCONNECT_FAILED') ? (
+          (agentConnectionState === 'AGENT_CONNECTED' ||
+            agentConnectionState === 'AGENT_DISCONNECT_FAILED') ? (
           <View style={styles.controlsContainer}>
             <MicButton />
             <TranscriptButton />
@@ -98,7 +103,7 @@ export default function ConversationalAI() {
             style={[
               styles.callAgentBtnContainer,
               agentConnectionState === AgentState.AGENT_DISCONNECT_REQUEST
-                ? {backgroundColor: $config.SEMANTIC_ERROR}
+                ? { backgroundColor: $config.SEMANTIC_ERROR }
                 : {},
               isLoading || !isAgentAvailable ? styles.disabledOpacity : {},
             ]}
@@ -109,8 +114,9 @@ export default function ConversationalAI() {
               {isStartAgent ? (
                 <>
                   <Image
+                    //@ts-ignore
                     source={JoinCallIcon}
-                    style={{width: 24, height: 24}}
+                    style={{ width: 24, height: 24 }}
                     tintColor={$config.FONT_COLOR}
                   />
                   <Text style={styles.callAgentBtnText}>Call AI Agent</Text>
@@ -123,8 +129,8 @@ export default function ConversationalAI() {
                       ? 'Connecting...'
                       : agentConnectionState ===
                         AgentState.AGENT_DISCONNECT_REQUEST
-                      ? 'Disconnecting...'
-                      : 'Loading...'}
+                        ? 'Disconnecting...'
+                        : 'Loading...'}
                   </Text>
                 </>
               )}

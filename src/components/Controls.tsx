@@ -5,7 +5,7 @@ import React, {
   useRef,
   useReducer,
 } from 'react';
-import {View, StyleSheet, useWindowDimensions} from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import {
   DispatchContext,
   PropsContext,
@@ -17,7 +17,7 @@ import LocalVideoMute from '../subComponents/LocalVideoMute';
 import Recording from '../subComponents/Recording';
 import LocalSwitchCamera from '../subComponents/LocalSwitchCamera';
 import isMobileOrTablet from '../utils/isMobileOrTablet';
-import {ClientRoleType} from '../../agora-rn-uikit';
+import { ClientRoleType } from '../../agora-rn-uikit';
 import LiveStreamControls from './livestream/views/LiveStreamControls';
 import {
   BREAKPOINTS,
@@ -28,11 +28,11 @@ import {
   MergeMoreButtonFields,
   CustomToolbarSort,
 } from '../utils/common';
-import {RoomInfoContextInterface, useRoomInfo} from './room-info/useRoomInfo';
+import { RoomInfoContextInterface, useRoomInfo } from './room-info/useRoomInfo';
 import LocalEndcall from '../subComponents/LocalEndCall';
 import LayoutIconButton from '../subComponents/LayoutIconButton';
 import IconButton from '../atoms/IconButton';
-import ActionMenu, {ActionMenuItem} from '../atoms/ActionMenu';
+import ActionMenu, { ActionMenuItem } from '../atoms/ActionMenu';
 import useLayoutsData from '../pages/video-call/useLayoutsData';
 import {
   ChatType,
@@ -44,18 +44,18 @@ import {
   useSidePanel,
   useSpeechToText,
 } from 'customization-api';
-import {useVideoCall} from './useVideoCall';
-import {useScreenshare} from '../subComponents/screenshare/useScreenshare';
+import { useVideoCall } from './useVideoCall';
+import { useScreenshare } from '../subComponents/screenshare/useScreenshare';
 import LayoutIconDropdown from '../subComponents/LayoutIconDropdown';
-import {useCaption} from '../../src/subComponents/caption/useCaption';
+import { useCaption } from '../../src/subComponents/caption/useCaption';
 import LanguageSelectorPopup from '../../src/subComponents/caption/LanguageSelectorPopup';
 import useSTTAPI from '../../src/subComponents/caption/useSTTAPI';
-import {EventNames} from '../rtm-events';
-import events, {PersistanceLevel} from '../rtm-events-api';
+import { EventNames } from '../rtm-events';
+import events, { PersistanceLevel } from '../rtm-events-api';
 import Toast from '../../react-native-toast-message';
-import {getLanguageLabel} from '../../src/subComponents/caption/utils';
+import { getLanguageLabel } from '../../src/subComponents/caption/utils';
 import Toolbar from '../atoms/Toolbar';
-import ToolbarItem, {useToolbarProps} from '../atoms/ToolbarItem';
+import ToolbarItem, { useToolbarProps } from '../atoms/ToolbarItem';
 import {
   ToolbarPresetProps,
   ToolbarItemHide,
@@ -64,17 +64,17 @@ import {
   ToolbarMoreButtonCustomFields,
 } from '../atoms/ToolbarPreset';
 
-import {whiteboardContext} from './whiteboard/WhiteboardConfigure';
-import {RoomPhase} from 'white-web-sdk';
-import {useNoiseSupression} from '../app-state/useNoiseSupression';
+import { whiteboardContext } from './whiteboard/WhiteboardConfigure';
+import { RoomPhase } from 'white-web-sdk';
+import { useNoiseSupression } from '../app-state/useNoiseSupression';
 
-import {useVB} from './virtual-background/useVB';
+import { useVB } from './virtual-background/useVB';
 import WhiteboardWrapper from './whiteboard/WhiteboardWrapper';
 import LocalEventEmitter, {
   LocalEventsEnum,
 } from '../rtm-events-api/LocalEvents';
-import {useSetRoomInfo} from './room-info/useSetRoomInfo';
-import {useString} from '../utils/useString';
+import { useSetRoomInfo } from './room-info/useSetRoomInfo';
+import { useString } from '../utils/useString';
 import {
   sttSpokenLanguageToastHeading,
   sttSpokenLanguageToastSubHeading,
@@ -94,13 +94,13 @@ import {
   toolbarItemWhiteboardText,
   toolbarItemManageTextTracksText,
 } from '../language/default-labels/videoCallScreenLabels';
-import {LogSource, logger} from '../logger/AppBuilderLogger';
-import {useModal} from '../utils/useModal';
+import { LogSource, logger } from '../logger/AppBuilderLogger';
+import { useModal } from '../utils/useModal';
 import ViewRecordingsModal from './recordings/ViewRecordingsModal';
-import {filterObject} from '../utils/index';
-import {useLanguage} from '../language/useLanguage';
+import { filterObject } from '../utils/index';
+import { useLanguage } from '../language/useLanguage';
 import RecordingDeletePopup from './recordings/RecordingDeletePopup';
-import {useControlPermissionMatrix} from './controls/useControlPermissionMatrix';
+import { useControlPermissionMatrix } from './controls/useControlPermissionMatrix';
 import {
   InviteToolbarItem,
   ScreenshareToolbarItem,
@@ -114,9 +114,9 @@ export const useToggleWhiteboard = () => {
     leaveWhiteboardRoom,
     getWhiteboardUid,
   } = useContext(whiteboardContext);
-  const {setCustomContent} = useContent();
-  const {setLayout} = useLayout();
-  const {dispatch} = useContext(DispatchContext);
+  const { setCustomContent } = useContent();
+  const { setLayout } = useLayout();
+  const { dispatch } = useContext(DispatchContext);
   return () => {
     if ($config.ENABLE_WHITEBOARD) {
       if (whiteboardActive) {
@@ -125,7 +125,7 @@ export const useToggleWhiteboard = () => {
         setLayout('grid');
         events.send(
           EventNames.WHITEBOARD_ACTIVE,
-          JSON.stringify({status: false}),
+          JSON.stringify({ status: false }),
           PersistanceLevel.Session,
         );
       } else {
@@ -138,7 +138,7 @@ export const useToggleWhiteboard = () => {
         setLayout('pinned');
         events.send(
           EventNames.WHITEBOARD_ACTIVE,
-          JSON.stringify({status: true}),
+          JSON.stringify({ status: true }),
           PersistanceLevel.Session,
         );
       }
@@ -147,11 +147,11 @@ export const useToggleWhiteboard = () => {
 };
 
 export const WhiteboardListener = () => {
-  const {dispatch} = useContext(DispatchContext);
-  const {setCustomContent} = useContent();
-  const {currentLayout, setLayout} = useLayout();
+  const { dispatch } = useContext(DispatchContext);
+  const { setCustomContent } = useContent();
+  const { currentLayout, setLayout } = useLayout();
   const {
-    data: {isHost},
+    data: { isHost },
     isWhiteBoardOn,
   } = useRoomInfo();
 
@@ -165,7 +165,7 @@ export const WhiteboardListener = () => {
     }
   }, [isWhiteBoardOn, isHost]);
 
-  const WhiteboardCallBack = ({status}) => {
+  const WhiteboardCallBack = ({ status }) => {
     if (status) {
       WhiteboardStartedCallBack();
     } else {
@@ -225,7 +225,7 @@ export const WhiteboardListener = () => {
         triggerEvent &&
           events.send(
             EventNames.WHITEBOARD_ACTIVE,
-            JSON.stringify({status: false}),
+            JSON.stringify({ status: false }),
             PersistanceLevel.Session,
           );
       } else {
@@ -239,7 +239,7 @@ export const WhiteboardListener = () => {
         triggerEvent &&
           events.send(
             EventNames.WHITEBOARD_ACTIVE,
-            JSON.stringify({status: true}),
+            JSON.stringify({ status: true }),
             PersistanceLevel.Session,
           );
       }
@@ -248,15 +248,15 @@ export const WhiteboardListener = () => {
   return null;
 };
 
-const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
+const MoreButton = (props: { fields: ToolbarMoreButtonDefaultFields }) => {
   //recording delete
   const [isRecordingDeletePopupVisible, setRecordingDeletePopupVisible] =
     React.useState<boolean>(false);
   const [recordingIdToDelete, setRecordingIdToDelete] = useState(0);
   //recording delete
 
-  const {label} = useToolbarProps();
-  const {data} = useRoomInfo();
+  const { label } = useToolbarProps();
+  const { data } = useRoomInfo();
   const noiseCancellationLabel = useString(toolbarItemNoiseCancellationText)();
   const whiteboardLabel = useString<boolean>(toolbarItemWhiteboardText);
   const captionLabel = useString<boolean>(toolbarItemCaptionText);
@@ -276,9 +276,9 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
   const inviteLabel = useString(toolbarItemInviteText)();
   const peopleLabel = useString(toolbarItemPeopleText)();
   const layoutLabel = useString(toolbarItemLayoutText)();
-  const {dispatch} = useContext(DispatchContext);
-  const {rtcProps} = useContext(PropsContext);
-  const {setCustomContent} = useContent();
+  const { dispatch } = useContext(DispatchContext);
+  const { rtcProps } = useContext(PropsContext);
+  const { setCustomContent } = useContent();
   const [_, setActionMenuVisible] = React.useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isHoveredOnModal, setIsHoveredOnModal] = useState(false);
@@ -293,11 +293,11 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     toggle: toggleTextTrackModal,
   } = useModal();
   const moreBtnRef = useRef(null);
-  const {width: globalWidth, height: globalHeight} = useWindowDimensions();
+  const { width: globalWidth, height: globalHeight } = useWindowDimensions();
   const layouts = useLayoutsData();
-  const {currentLayout, setLayout} = useLayout();
+  const { currentLayout, setLayout } = useLayout();
   const layout = layouts.findIndex(item => item.name === currentLayout);
-  const {setSidePanel, sidePanel} = useSidePanel();
+  const { setSidePanel, sidePanel } = useSidePanel();
   const {
     isCaptionON,
     setIsCaptionON,
@@ -314,20 +314,20 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
   const isFirstTimePopupOpen = React.useRef(false);
   const STT_clicked = React.useRef(null);
 
-  const {start, restart} = useSTTAPI();
+  const { start, restart } = useSTTAPI();
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
-  const {setShowInvitePopup, setShowStopRecordingPopup, setShowLayoutOption} =
+  const { setShowInvitePopup, setShowStopRecordingPopup, setShowLayoutOption } =
     useVideoCall();
-  const {isScreenshareActive, startScreenshare, stopScreenshare} =
+  const { isScreenshareActive, startScreenshare, stopScreenshare } =
     useScreenshare();
-  const {isRecordingActive, startRecording, inProgress, deleteRecording} =
+  const { isRecordingActive, startRecording, inProgress, deleteRecording } =
     useRecording();
-  const {setChatType} = useChatUIControls();
+  const { setChatType } = useChatUIControls();
   const actionMenuitems: ActionMenuItem[] = [];
 
-  const {isNoiseSupressionEnabled, setNoiseSupression} = useNoiseSupression();
+  const { isNoiseSupressionEnabled, setNoiseSupression } = useNoiseSupression();
 
   //0. AINS
   if ($config.ENABLE_NOISE_CANCELLATION) {
@@ -354,7 +354,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
   //AINS
 
   //1. virtual background
-  const {isVBActive, setIsVBActive} = useVB();
+  const { isVBActive, setIsVBActive } = useVB();
 
   const toggleVB = () => {
     if (isVBActive) {
@@ -405,7 +405,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     whiteboardActive && currentLayout !== 'pinned' && setLayout('pinned');
   }, []);
 
-  const WhiteboardCallBack = ({status}) => {
+  const WhiteboardCallBack = ({ status }) => {
     if (status) {
       WhiteboardStartedCallBack();
     } else {
@@ -438,7 +438,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
         triggerEvent &&
           events.send(
             EventNames.WHITEBOARD_ACTIVE,
-            JSON.stringify({status: false}),
+            JSON.stringify({ status: false }),
             PersistanceLevel.Session,
           );
       } else {
@@ -452,7 +452,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
         triggerEvent &&
           events.send(
             EventNames.WHITEBOARD_ACTIVE,
-            JSON.stringify({status: true}),
+            JSON.stringify({ status: true }),
             PersistanceLevel.Session,
           );
       }
@@ -466,7 +466,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
   //Disable whiteboard button when backend sends error
   const WhiteboardError =
     data?.whiteboard?.error &&
-    (data?.whiteboard?.error?.code || data?.whiteboard?.error?.message)
+      (data?.whiteboard?.error?.code || data?.whiteboard?.error?.message)
       ? true
       : false;
 
@@ -615,13 +615,33 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     });
   }
 
+  // 6.5 Test Panel - Add after Participants
+  // 6.5 Test Panel - Add after Participants (HOST ONLY)
+  if (isHost) {
+    actionMenuitems.push({
+      hide: w => {
+        return w >= BREAKPOINTS.lg ? true : false;
+      },
+      componentName: 'test-panel',
+      order: 6.5,
+      icon: 'spotlight',
+      iconColor: $config.SECONDARY_ACTION_COLOR,
+      textColor: $config.FONT_COLOR,
+      title: 'Engagement',
+      onPress: () => {
+        setActionMenuVisible(false);
+        setSidePanel(SidePanelType.TestPanel);
+      },
+    });
+  }
+
   // 7. Chat
   const canAccessChat = useControlPermissionMatrix('chatControl');
   if (canAccessChat) {
     //disable chat button when BE sends error on chat
     const ChatError =
       data?.chat?.error &&
-      (data?.chat?.error?.code || data?.chat?.error?.message)
+        (data?.chat?.error?.code || data?.chat?.error?.message)
         ? true
         : false;
     actionMenuitems.push({
@@ -753,14 +773,14 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     onHoverContent: (
       <LayoutIconDropdown
         onHoverPlaceHolder="vertical"
-        setShowDropdown={() => {}}
+        setShowDropdown={() => { }}
         showDropdown={true}
         modalPosition={
           globalWidth <= BREAKPOINTS.lg
-            ? {bottom: 65, left: -150}
-            : {bottom: 20, left: -150}
+            ? { bottom: 65, left: -150 }
+            : { bottom: 20, left: -150 }
         }
-        caretPosition={{bottom: 45, right: -10}}
+        caretPosition={{ bottom: 45, right: -10 }}
       />
     ),
   });
@@ -842,8 +862,8 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     const method = isCaptionClicked
       ? isCaptionON
       : isTranscriptON
-      ? 'stop'
-      : 'start';
+        ? 'stop'
+        : 'start';
     if (isTranscriptClicked) {
       if (!isTranscriptON) {
         setSidePanel(SidePanelType.Transcript);
@@ -870,15 +890,15 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
     }
   };
 
-  const {width, height} = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const isHidden = (hide: ToolbarItemHide = false) => {
     try {
       return typeof hide === 'boolean'
         ? hide
         : typeof hide === 'function'
-        ? hide(width, height)
-        : false;
+          ? hide(width, height)
+          : false;
     } catch (error) {
       console.log('debugging isHidden error', error);
       return false;
@@ -902,7 +922,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
         //in case recording list opened
         events.send(
           EventNames.RECORDING_DELETED,
-          JSON.stringify({recordingId: recordingIdToDelete}),
+          JSON.stringify({ recordingId: recordingIdToDelete }),
           PersistanceLevel.None,
         );
         Toast.show({
@@ -975,7 +995,7 @@ const MoreButton = (props: {fields: ToolbarMoreButtonDefaultFields}) => {
         <></>
       )}
       <ActionMenu
-        containerStyle={globalWidth < 720 ? {width: 180} : {width: 260}}
+        containerStyle={globalWidth < 720 ? { width: 180 } : { width: 260 }}
         hoverMode={true}
         onHover={isVisible => setIsHoveredOnModal(isVisible)}
         from={'control-bar'}
@@ -1037,10 +1057,10 @@ export const LayoutToolbarItem = props => (
 );
 
 export const RaiseHandToolbarItem = props => {
-  const {rtcProps} = useContext(PropsContext);
+  const { rtcProps } = useContext(PropsContext);
   // attendee can view option if any host has started STT
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
   return $config.EVENT_MODE ? (
     rtcProps.role == ClientRoleType.ClientRoleAudience ? (
@@ -1096,7 +1116,7 @@ export const SwitchCameraToolbarItem = props => {
 
 export const RecordingToolbarItem = props => {
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
   return (
     isHost &&
@@ -1111,11 +1131,11 @@ export const RecordingToolbarItem = props => {
 export const MoreButtonToolbarItem = (props?: {
   fields?: ToolbarMoreButtonCustomFields;
 }) => {
-  const {width} = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
-  const {isSTTActive} = useCaption();
+  const { isSTTActive } = useCaption();
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
@@ -1132,8 +1152,8 @@ export const MoreButtonToolbarItem = (props?: {
     (isHost && $config.ENABLE_WHITEBOARD && isWebInternal()) ? (
     <ToolbarItem testID="more-btn" toolbarProps={props}>
       {((!$config.AUTO_CONNECT_RTM && !isHost) || $config.AUTO_CONNECT_RTM) &&
-      $config.ENABLE_WHITEBOARD &&
-      isWebInternal() ? (
+        $config.ENABLE_WHITEBOARD &&
+        isWebInternal() ? (
         <WhiteboardListener />
       ) : (
         <></>
@@ -1164,13 +1184,13 @@ export interface ControlsProps {
   includeDefaultItems?: boolean;
 }
 const Controls = (props: ControlsProps) => {
-  const {languageCode} = useLanguage();
-  const {items = {}, includeDefaultItems = true} = props;
-  const {width, height} = useWindowDimensions();
-  const {defaultContent} = useContent();
-  const {setLanguage, setMeetingTranscript, setIsSTTActive} = useCaption();
+  const { languageCode } = useLanguage();
+  const { items = {}, includeDefaultItems = true } = props;
+  const { width, height } = useWindowDimensions();
+  const { defaultContent } = useContent();
+  const { setLanguage, setMeetingTranscript, setIsSTTActive } = useCaption();
   const defaultContentRef = React.useRef(defaultContent);
-  const {setRoomInfo} = useSetRoomInfo();
+  const { setRoomInfo } = useSetRoomInfo();
   const heading = useString<'Set' | 'Changed'>(sttSpokenLanguageToastHeading);
   const subheading = useString<{
     action: 'Set' | 'Changed';
@@ -1179,8 +1199,8 @@ const Controls = (props: ControlsProps) => {
     username: string;
   }>(sttSpokenLanguageToastSubHeading);
 
-  const {sttLanguage, isSTTActive} = useRoomInfo();
-  const {addStreamMessageListener} = useSpeechToText();
+  const { sttLanguage, isSTTActive } = useRoomInfo();
+  const { addStreamMessageListener } = useSpeechToText();
 
   React.useEffect(() => {
     defaultContentRef.current = defaultContent;
@@ -1201,8 +1221,8 @@ const Controls = (props: ControlsProps) => {
       prevLang.indexOf('') !== -1
         ? `has set the spoken language to  "${getLanguageLabel(newLang)}" `
         : `changed the spoken language from "${getLanguageLabel(
-            prevLang,
-          )}" to "${getLanguageLabel(newLang)}" `;
+          prevLang,
+        )}" to "${getLanguageLabel(newLang)}" `;
     // const msg = `${
     //   //@ts-ignore
     //   defaultContentRef.current[uid]?.name || username
@@ -1235,7 +1255,7 @@ const Controls = (props: ControlsProps) => {
     setRoomInfo(prev => {
       return {
         ...prev,
-        sttLanguage: {...sttLanguage, langChanged: false},
+        sttLanguage: { ...sttLanguage, langChanged: false },
       };
     });
     // syncing local set language
@@ -1265,8 +1285,8 @@ const Controls = (props: ControlsProps) => {
       return typeof hide === 'boolean'
         ? hide
         : typeof hide === 'function'
-        ? hide(width, height)
-        : false;
+          ? hide(width, height)
+          : false;
     } catch (error) {
       console.log('debugging isHidden error', error);
       return false;
@@ -1459,7 +1479,7 @@ const style = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  secondaryBtn: {marginLeft: 16, height: 40, paddingVertical: 5},
+  secondaryBtn: { marginLeft: 16, height: 40, paddingVertical: 5 },
   primaryBtn: {
     maxWidth: 109,
     minWidth: 109,

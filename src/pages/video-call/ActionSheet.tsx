@@ -1,4 +1,4 @@
-import {StyleSheet, Text, View, TouchableWithoutFeedback} from 'react-native';
+import { StyleSheet, Text, View, TouchableWithoutFeedback } from 'react-native';
 import React, {
   useRef,
   useCallback,
@@ -6,28 +6,29 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import {BottomSheet, BottomSheetRef} from 'react-spring-bottom-sheet';
+import { BottomSheet, BottomSheetRef } from 'react-spring-bottom-sheet';
 import './ActionSheetStyles.css';
 import ActionSheetContent from './ActionSheetContent';
-import {SpringEvent} from 'react-spring-bottom-sheet/dist/types';
+import { SpringEvent } from 'react-spring-bottom-sheet/dist/types';
 import Chat from '../../components/Chat';
 import ParticipantView from '../../components/ParticipantsView';
 import SettingsView from '../../components/SettingsView';
 
-import {SidePanelType} from '../../subComponents/SidePanelEnum';
-import {useSidePanel} from '../../utils/useSidePanel';
+import { SidePanelType } from '../../subComponents/SidePanelEnum';
+import { useSidePanel } from '../../utils/useSidePanel';
 import ToastComponent from '../../components/ToastComponent';
-import {isMobileUA} from '../../utils/common';
-import {useToast} from '../../components/useToast';
+import { isMobileUA } from '../../utils/common';
+import { useToast } from '../../components/useToast';
 import ActionSheetHandle from './ActionSheetHandle';
 import Spacer from '../../atoms/Spacer';
 import Transcript from '../../subComponents/caption/Transcript';
-import {ToolbarProvider} from '../../utils/useToolbar';
-import {ActionSheetProvider} from '../../utils/useActionSheet';
-import {useOrientation} from '../../utils/useOrientation';
-import {useCustomization} from 'customization-implementation';
+import { ToolbarProvider } from '../../utils/useToolbar';
+import { ActionSheetProvider } from '../../utils/useActionSheet';
+import { useOrientation } from '../../utils/useOrientation';
+import { useCustomization } from 'customization-implementation';
 import CustomSidePanelView from '../../components/CustomSidePanel';
-import {useControlPermissionMatrix} from '../../components/controls/useControlPermissionMatrix';
+import { useControlPermissionMatrix } from '../../components/controls/useControlPermissionMatrix';
+import TestPanel from '../../components/TestPanel';
 
 const ActionSheet = props => {
   const [showCustomSidePanel, setShowCustomSidePanel] = useState(false);
@@ -48,13 +49,14 @@ const ActionSheet = props => {
       }
     }
   });
-  const {snapPointsMinMax = [100, 400], hideDefaultActionSheet = false} = props;
-  const {setActionSheetVisible} = useToast();
+  const { snapPointsMinMax = [100, 400], hideDefaultActionSheet = false } = props;
+  const { setActionSheetVisible } = useToast();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = React.useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = React.useState(false);
+  const [isTestPanelOpen, setIsTestPanelOpen] = React.useState(false); // Add this
   const bottomSheetRef = useRef<BottomSheetRef>(null);
   const chatSheetRef = useRef<BottomSheetRef>(null);
   const participantsSheetRef = useRef<BottomSheetRef>(null);
@@ -63,19 +65,20 @@ const ActionSheet = props => {
   const transcriptSheetRef = useRef<BottomSheetRef>(null);
   const ToastComponentRender =
     isMobileUA() &&
-    (isChatOpen ||
-      isSettingsOpen ||
-      isParticipantsOpen ||
-      isTranscriptOpen ||
-      showCustomSidePanel) ? (
+      (isChatOpen ||
+        isSettingsOpen ||
+        isParticipantsOpen ||
+        isTranscriptOpen ||
+        isTestPanelOpen ||
+        showCustomSidePanel) ? (
       <ToastComponent />
     ) : (
       <></>
     );
-  const {sidePanel, setSidePanel} = useSidePanel();
+  const { sidePanel, setSidePanel } = useSidePanel();
   const [showOverlay, setShowOverlay] = React.useState(false);
   const handleSheetChanges = useCallback((index: number) => {
-    bottomSheetRef?.current?.snapTo(({snapPoints}) => snapPoints[index]);
+    bottomSheetRef?.current?.snapTo(({ snapPoints }) => snapPoints[index]);
     index === 0 ? setIsExpanded(false) : setIsExpanded(true);
   }, []);
 
@@ -92,6 +95,7 @@ const ActionSheet = props => {
       isSettingsOpen ||
       isParticipantsOpen ||
       isTranscriptOpen ||
+      isTestPanelOpen ||
       showCustomSidePanel
     ) {
       setActionSheetVisible(true);
@@ -103,6 +107,7 @@ const ActionSheet = props => {
     isSettingsOpen,
     isParticipantsOpen,
     isTranscriptOpen,
+    isTestPanelOpen,
     showCustomSidePanel,
     setActionSheetVisible,
   ]);
@@ -136,11 +141,16 @@ const ActionSheet = props => {
           setIsTranscriptOpen(true);
           break;
         }
+        case SidePanelType.TestPanel: {  // ✅ ADD THIS
+          setIsTestPanelOpen(true);
+          break;
+        }
         case SidePanelType.None: {
           setIsChatOpen(false);
           setIsParticipantsOpen(false);
           setIsSettingsOpen(false);
           setIsTranscriptOpen(false);
+          setIsTestPanelOpen(false);
           handleSheetChanges(0);
         }
         default:
@@ -222,8 +232,8 @@ const ActionSheet = props => {
             onSpringEnd={handleSpringEnd}
             // skipInitialTransition={true}
             expandOnContentDrag={true}
-            snapPoints={({maxHeight}) => snapPointsMinMax}
-            defaultSnap={({lastSnap, snapPoints}) =>
+            snapPoints={({ maxHeight }) => snapPointsMinMax}
+            defaultSnap={({ lastSnap, snapPoints }) =>
               lastSnap ?? Math.min(...snapPoints)
             }
             header={
@@ -253,9 +263,9 @@ const ActionSheet = props => {
             open={isChatOpen}
             blocking={false}
             expandOnContentDrag={false}
-            snapPoints={({maxHeight}) => [1 * maxHeight]}
+            snapPoints={({ maxHeight }) => [1 * maxHeight]}
             header={<ActionSheetHandle sidePanel={SidePanelType.Chat} />}
-            defaultSnap={({lastSnap, snapPoints}) => snapPoints[0]}>
+            defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}>
             <Chat showHeader={false} />
           </BottomSheet>
         )}
@@ -263,7 +273,7 @@ const ActionSheet = props => {
         {/* Participants Action Sheet */}
         {/** Toolbar and actionsheet wrapper added to hide the local mute button label*/}
         {canAccessParticipants && (
-          <ToolbarProvider value={{position: undefined}}>
+          <ToolbarProvider value={{ position: undefined }}>
             <ActionSheetProvider>
               <BottomSheet
                 sibling={ToastComponentRender}
@@ -271,8 +281,8 @@ const ActionSheet = props => {
                 onDismiss={onDismiss}
                 open={isParticipantsOpen}
                 expandOnContentDrag={false}
-                snapPoints={({maxHeight}) => [1 * maxHeight]}
-                defaultSnap={({lastSnap, snapPoints}) => snapPoints[0]}
+                snapPoints={({ maxHeight }) => [1 * maxHeight]}
+                defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}
                 scrollLocking={false}
                 header={
                   <ActionSheetHandle sidePanel={SidePanelType.Participants} />
@@ -291,8 +301,8 @@ const ActionSheet = props => {
             onDismiss={onDismiss}
             open={isSettingsOpen}
             expandOnContentDrag={false}
-            snapPoints={({maxHeight}) => [1 * maxHeight]}
-            defaultSnap={({lastSnap, snapPoints}) => snapPoints[0]}
+            snapPoints={({ maxHeight }) => [1 * maxHeight]}
+            defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}
             header={<ActionSheetHandle sidePanel={SidePanelType.Settings} />}
             blocking={false}>
             <SettingsView showHeader={false} />
@@ -305,12 +315,25 @@ const ActionSheet = props => {
           onDismiss={onDismiss}
           open={isTranscriptOpen}
           expandOnContentDrag={false}
-          snapPoints={({maxHeight}) => [1 * maxHeight]}
-          defaultSnap={({lastSnap, snapPoints}) => snapPoints[0]}
+          snapPoints={({ maxHeight }) => [1 * maxHeight]}
+          defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}
           header={<ActionSheetHandle sidePanel={SidePanelType.Transcript} />}
           scrollLocking={false}
           blocking={false}>
           <Transcript showHeader={false} />
+        </BottomSheet>
+        <BottomSheet
+          sibling={ToastComponentRender}
+          ref={useRef<BottomSheetRef>(null)}
+          onDismiss={onDismiss}
+          open={isTestPanelOpen}
+          expandOnContentDrag={false}
+          snapPoints={({ maxHeight }) => [1 * maxHeight]}
+          defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}
+          header={<ActionSheetHandle sidePanel={SidePanelType.TestPanel} />}
+          scrollLocking={false}
+          blocking={false}>
+          <TestPanel showHeader={false} />
         </BottomSheet>
         {showCustomSidePanel && customSidePanelIndex !== undefined ? (
           <BottomSheet
@@ -319,8 +342,8 @@ const ActionSheet = props => {
             onDismiss={onDismiss}
             open={showCustomSidePanel}
             expandOnContentDrag={false}
-            snapPoints={({maxHeight}) => [1 * maxHeight]}
-            defaultSnap={({lastSnap, snapPoints}) => snapPoints[0]}
+            snapPoints={({ maxHeight }) => [1 * maxHeight]}
+            defaultSnap={({ lastSnap, snapPoints }) => snapPoints[0]}
             header={
               <ActionSheetHandle
                 isCustomSidePanel={true}

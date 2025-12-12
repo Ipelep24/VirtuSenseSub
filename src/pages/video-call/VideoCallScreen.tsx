@@ -1,5 +1,5 @@
 //@ts-nocheck
-import React, {useContext, useEffect, useState} from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,13 +7,14 @@ import {
   Text,
   Platform,
 } from 'react-native';
-import {useCustomization} from 'customization-implementation';
-import Navbar, {NavbarProps} from '../../components/Navbar';
+import TestPanel from '../../components/TestPanel';
+import { useCustomization } from 'customization-implementation';
+import Navbar, { NavbarProps } from '../../components/Navbar';
 import ParticipantsView from '../../components/ParticipantsView';
 import SettingsView from '../../components/SettingsView';
-import Controls, {ControlsProps} from '../../components/Controls';
-import Chat, {ChatProps} from '../../components/Chat';
-import {SidePanelType} from '../../subComponents/SidePanelEnum';
+import Controls, { ControlsProps } from '../../components/Controls';
+import Chat, { ChatProps } from '../../components/Chat';
+import { SidePanelType } from '../../subComponents/SidePanelEnum';
 import {
   isMobileUA,
   isValidReactComponent,
@@ -21,19 +22,19 @@ import {
   useIsDesktop,
   useIsSmall,
 } from '../../utils/common';
-import {useSidePanel} from '../../utils/useSidePanel';
+import { useSidePanel } from '../../utils/useSidePanel';
 import VideoComponent from './VideoComponent';
-import {videoView} from '../../../theme.json';
-import {ToolbarProvider, ToolbarPosition} from '../../utils/useToolbar';
+import { videoView } from '../../../theme.json';
+import { ToolbarProvider, ToolbarPosition } from '../../utils/useToolbar';
 import SDKEvents from '../../utils/SdkEvents';
-import {useRoomInfo} from '../../components/room-info/useRoomInfo';
+import { useRoomInfo } from '../../components/room-info/useRoomInfo';
 import {
   controlMessageEnum,
   SidePanelItem,
   useCaption,
   useUserName,
 } from 'customization-api';
-import events, {PersistanceLevel} from '../../rtm-events-api';
+import events, { PersistanceLevel } from '../../rtm-events-api';
 import VideoCallMobileView from './VideoCallMobileView';
 import CaptionContainer from '../../subComponents/caption/CaptionContainer';
 import Transcript, {
@@ -51,24 +52,24 @@ import useFindActiveSpeaker from '../../utils/useFindActiveSpeaker';
 import VBPanel, {
   VBPanelProps,
 } from '../../components/virtual-background/VBPanel';
-import {LogSource, logger} from '../../logger/AppBuilderLogger';
-import {useIsRecordingBot} from '../../subComponents/recording/useIsRecordingBot';
-import {ToolbarPresetProps} from '../../atoms/ToolbarPreset';
+import { LogSource, logger } from '../../logger/AppBuilderLogger';
+import { useIsRecordingBot } from '../../subComponents/recording/useIsRecordingBot';
+import { ToolbarPresetProps } from '../../atoms/ToolbarPreset';
 import CustomSidePanelView from '../../components/CustomSidePanel';
-import {useControlPermissionMatrix} from '../../components/controls/useControlPermissionMatrix';
+import { useControlPermissionMatrix } from '../../components/controls/useControlPermissionMatrix';
 
 const VideoCallScreen = () => {
   useFindActiveSpeaker();
-  const {sidePanel} = useSidePanel();
+  const { sidePanel } = useSidePanel();
   const [showCustomSidePanel, setShowCustomSidePanel] = useState(false);
   const [customSidePanelIndex, setCustomSidePanelIndex] = useState<
     undefined | number
   >(undefined);
   const [name] = useUserName();
   const {
-    data: {meetingTitle, isHost},
+    data: { meetingTitle, isHost },
   } = useRoomInfo();
-  const {isCaptionON} = useCaption();
+  const { isCaptionON } = useCaption();
   const {
     ChatComponent,
     VideocallComponent,
@@ -257,7 +258,7 @@ const VideoCallScreen = () => {
       if (
         data?.components?.videoCall.virtualBackgroundPanel &&
         typeof data?.components?.videoCall.virtualBackgroundPanel !==
-          'object' &&
+        'object' &&
         isValidReactComponent(
           data?.components?.videoCall.virtualBackgroundPanel,
         )
@@ -323,168 +324,173 @@ const VideoCallScreen = () => {
     }
   }, [sidePanel, SidePanelArray]);
 
-  const {isRecordingBot, recordingBotUIConfig} = useIsRecordingBot();
+  const { isRecordingBot, recordingBotUIConfig } = useIsRecordingBot();
   const canAccessChat = useControlPermissionMatrix('chatControl');
 
   return VideocallComponent ? (
     <VideocallComponent />
   ) : // ) : !isDesktop ? (
-  isMobileUA() ? (
-    // Mobile View
-    <VideocallWrapper>
-      <VideoCallMobileView native={false} />
-    </VideocallWrapper>
-  ) : (
-    // Desktop View
-    <>
+    isMobileUA() ? (
+      // Mobile View
       <VideocallWrapper>
-        <VideocallBeforeView />
-        <View
-          style={
-            $config.ENABLE_CONVERSATIONAL_AI
-              ? style.containerForAiAgent
-              : $config.ICON_TEXT
-              ? style.fullRow
-              : style.fullRowWithoutIcon
-          }>
-          <ToolbarProvider value={{position: ToolbarPosition.left}}>
-            {Object.keys(LeftbarProps)?.length ? (
-              <LeftbarComponent
-                items={LeftbarProps}
-                includeDefaultItems={false}
-              />
-            ) : (
-              <LeftbarComponent />
-            )}
-          </ToolbarProvider>
-          <View style={style.full}>
-            <View
-              style={
-                isRecordingBot &&
-                !recordingBotUIConfig.topBar &&
-                style.zeroHeight
-              }>
-              <ToolbarProvider value={{position: ToolbarPosition.top}}>
-                {Object.keys(TopbarProps)?.length ? (
-                  <TopbarComponent
-                    items={TopbarProps}
-                    includeDefaultItems={false}
-                  />
-                ) : (
-                  <TopbarComponent />
-                )}
-              </ToolbarProvider>
-            </View>
-            <View
-              style={[
-                style.videoView,
-                $config.ENABLE_CONVERSATIONAL_AI
-                  ? {}
-                  : $config.ICON_TEXT
-                  ? {
-                      paddingHorizontal: isDesktop() ? 32 : 10,
-                      paddingVertical: 10,
-                      paddingBottom: 0,
-                    }
-                  : {marginVertical: 20},
-              ]}>
-              <VideoComponent />
-              {/**
+        <VideoCallMobileView native={false} />
+      </VideocallWrapper>
+    ) : (
+      // Desktop View
+      <>
+        <VideocallWrapper>
+          <VideocallBeforeView />
+          <View
+            style={
+              $config.ENABLE_CONVERSATIONAL_AI
+                ? style.containerForAiAgent
+                : $config.ICON_TEXT
+                  ? style.fullRow
+                  : style.fullRowWithoutIcon
+            }>
+            <ToolbarProvider value={{ position: ToolbarPosition.left }}>
+              {Object.keys(LeftbarProps)?.length ? (
+                <LeftbarComponent
+                  items={LeftbarProps}
+                  includeDefaultItems={false}
+                />
+              ) : (
+                <LeftbarComponent />
+              )}
+            </ToolbarProvider>
+            <View style={style.full}>
+              <View
+                style={
+                  isRecordingBot &&
+                  !recordingBotUIConfig.topBar &&
+                  style.zeroHeight
+                }>
+                <ToolbarProvider value={{ position: ToolbarPosition.top }}>
+                  {Object.keys(TopbarProps)?.length ? (
+                    <TopbarComponent
+                      items={TopbarProps}
+                      includeDefaultItems={false}
+                    />
+                  ) : (
+                    <TopbarComponent />
+                  )}
+                </ToolbarProvider>
+              </View>
+              <View
+                style={[
+                  style.videoView,
+                  $config.ENABLE_CONVERSATIONAL_AI
+                    ? {}
+                    : $config.ICON_TEXT
+                      ? {
+                        paddingHorizontal: isDesktop() ? 32 : 10,
+                        paddingVertical: 10,
+                        paddingBottom: 0,
+                      }
+                      : { marginVertical: 20 },
+                ]}>
+                <VideoComponent />
+                {/**
                * To display custom side panel
                * it will be shown when customer inject the custom side panel content
                * and call setSidePanel using the name they given
                */}
-              {showCustomSidePanel && customSidePanelIndex !== undefined ? (
-                SidePanelArray &&
-                SidePanelArray?.length &&
-                SidePanelArray[customSidePanelIndex]?.component ? (
-                  <CustomSidePanelView
-                    content={SidePanelArray[customSidePanelIndex]?.component}
-                    title={SidePanelArray[customSidePanelIndex]?.title}
-                    name={SidePanelArray[customSidePanelIndex]?.name}
-                    onClose={SidePanelArray[customSidePanelIndex]?.onClose}
-                  />
+                {showCustomSidePanel && customSidePanelIndex !== undefined ? (
+                  SidePanelArray &&
+                    SidePanelArray?.length &&
+                    SidePanelArray[customSidePanelIndex]?.component ? (
+                    <CustomSidePanelView
+                      content={SidePanelArray[customSidePanelIndex]?.component}
+                      title={SidePanelArray[customSidePanelIndex]?.title}
+                      name={SidePanelArray[customSidePanelIndex]?.name}
+                      onClose={SidePanelArray[customSidePanelIndex]?.onClose}
+                    />
+                  ) : (
+                    <></>
+                  )
                 ) : (
                   <></>
-                )
-              ) : (
-                <></>
-              )}
-              {sidePanel === SidePanelType.Participants ? (
-                <ParticipantsComponent />
-              ) : (
-                <></>
-              )}
-              {sidePanel === SidePanelType.Chat ? (
-                canAccessChat ? (
-                  <ChatComponent />
+                )}
+                {sidePanel === SidePanelType.Participants ? (
+                  <ParticipantsComponent />
                 ) : (
                   <></>
-                )
-              ) : (
-                <></>
-              )}
-              {sidePanel === SidePanelType.Settings ? (
-                <SettingsComponent />
-              ) : (
-                <></>
-              )}
-              {sidePanel === SidePanelType.Transcript ? (
-                $config.ENABLE_MEETING_TRANSCRIPT ? (
-                  <TranscriptComponent />
+                )}
+                {sidePanel === SidePanelType.Chat ? (
+                  canAccessChat ? (
+                    <ChatComponent />
+                  ) : (
+                    <></>
+                  )
                 ) : (
                   <></>
-                )
-              ) : (
+                )}
+                {sidePanel === SidePanelType.TestPanel ? (
+                  <TestPanel />
+                ) : (
+                  <></>
+                )}
+                {sidePanel === SidePanelType.Settings ? (
+                  <SettingsComponent />
+                ) : (
+                  <></>
+                )}
+                {sidePanel === SidePanelType.Transcript ? (
+                  $config.ENABLE_MEETING_TRANSCRIPT ? (
+                    <TranscriptComponent />
+                  ) : (
+                    <></>
+                  )
+                ) : (
+                  <></>
+                )}
+                {sidePanel === SidePanelType.VirtualBackground ? (
+                  <VirtualBackgroundComponent />
+                ) : (
+                  <></>
+                )}
+              </View>
+              {!isWebInternal() && sidePanel === SidePanelType.Chat ? (
                 <></>
-              )}
-              {sidePanel === SidePanelType.VirtualBackground ? (
-                <VirtualBackgroundComponent />
               ) : (
-                <></>
+                <ToolbarProvider value={{ position: ToolbarPosition.bottom }}>
+                  {Object.keys(BottombarProps)?.length ? (
+                    <BottombarComponent
+                      items={BottombarProps}
+                      includeDefaultItems={false}
+                    />
+                  ) : (
+                    <>
+                      {isCaptionON ? <CaptionComponent /> : <></>}
+                      <Spacer size={$config.ENABLE_CONVERSATIONAL_AI ? 20 : 10} />
+                      <View
+                        style={
+                          isRecordingBot &&
+                          !recordingBotUIConfig.bottomBar &&
+                          style.zeroHeight
+                        }>
+                        <BottombarComponent />
+                      </View>
+                    </>
+                  )}
+                </ToolbarProvider>
               )}
             </View>
-            {!isWebInternal() && sidePanel === SidePanelType.Chat ? (
-              <></>
-            ) : (
-              <ToolbarProvider value={{position: ToolbarPosition.bottom}}>
-                {Object.keys(BottombarProps)?.length ? (
-                  <BottombarComponent
-                    items={BottombarProps}
-                    includeDefaultItems={false}
-                  />
-                ) : (
-                  <>
-                    {isCaptionON ? <CaptionComponent /> : <></>}
-                    <Spacer size={$config.ENABLE_CONVERSATIONAL_AI ? 20 : 10} />
-                    <View
-                      style={
-                        isRecordingBot &&
-                        !recordingBotUIConfig.bottomBar &&
-                        style.zeroHeight
-                      }>
-                      <BottombarComponent />
-                    </View>
-                  </>
-                )}
-              </ToolbarProvider>
-            )}
+            <ToolbarProvider value={{ position: ToolbarPosition.right }}>
+              {Object.keys(RightbarProps)?.length ? (
+                <RightbarComponent
+                  items={RightbarProps}
+                  includeDefaultItems={false}
+                />
+              ) : (
+                <RightbarComponent />
+              )}
+            </ToolbarProvider>
           </View>
-          <ToolbarProvider value={{position: ToolbarPosition.right}}>
-            {Object.keys(RightbarProps)?.length ? (
-              <RightbarComponent
-                items={RightbarProps}
-                includeDefaultItems={false}
-              />
-            ) : (
-              <RightbarComponent />
-            )}
-          </ToolbarProvider>
-        </View>
-        <VideocallAfterView />
-      </VideocallWrapper>
-    </>
-  );
+          <VideocallAfterView />
+        </VideocallWrapper>
+      </>
+    );
 };
 export default VideoCallScreen;
 //change these to inline styles or sth

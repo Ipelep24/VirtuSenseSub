@@ -5,4 +5,5 @@ export enum SidePanelType {
   Settings = 'Settings',
   Transcript = 'Transcript',
   VirtualBackground = 'VirtualBackground',
+  TestPanel = 'TestPanel', // Add this new panel type
 }

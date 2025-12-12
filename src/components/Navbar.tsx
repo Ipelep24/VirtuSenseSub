@@ -1,4 +1,4 @@
-import React, {useContext, useEffect} from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import Settings, {
   SettingsWithViewWrapper,
   SettingsIconButtonProps,
 } from './Settings';
-import {SidePanelType} from '../subComponents/SidePanelEnum';
+import { SidePanelType } from '../subComponents/SidePanelEnum';
 import ChatContext from '../components/ChatContext';
 import isMobileOrTablet from '../utils/isMobileOrTablet';
 import LiveStreamContext from './livestream';
-import {filterObject, numFormatter} from '../utils/index';
-import {useChatNotification} from '../components/chat-notification/useChatNotification';
+import { filterObject, numFormatter } from '../utils/index';
+import { useChatNotification } from '../components/chat-notification/useChatNotification';
 import {
   BREAKPOINTS,
   CustomToolbarMerge,
@@ -24,48 +24,49 @@ import {
   isWebInternal,
   trimText,
 } from '../utils/common';
-import {useRecording} from '../subComponents/recording/useRecording';
-import {useString} from '../utils/useString';
-import {useRoomInfo} from './room-info/useRoomInfo';
-import {useSidePanel} from '../utils/useSidePanel';
-import {ChatType, useChatUIControls} from './chat-ui/useChatUIControls';
-import IconButton, {IconButtonProps} from '../atoms/IconButton';
+import { useRecording } from '../subComponents/recording/useRecording';
+import { useString } from '../utils/useString';
+import { useRoomInfo } from './room-info/useRoomInfo';
+import { useSidePanel } from '../utils/useSidePanel';
+import { ChatType, useChatUIControls } from './chat-ui/useChatUIControls';
+import IconButton, { IconButtonProps } from '../atoms/IconButton';
 import ThemeConfig from '../theme';
 import ParticipantsCount from '../atoms/ParticipantsCount';
 import RecordingInfo from '../atoms/RecordingInfo';
 import Toolbar from '../atoms/Toolbar';
-import ToolbarItem, {useToolbarProps} from '../atoms/ToolbarItem';
+import ToolbarItem, { useToolbarProps } from '../atoms/ToolbarItem';
 import {
   ToolbarItemHide,
   ToolbarItemLabel,
   TopToolbarItemsConfig,
   ToolbarPresetProps,
 } from '../atoms/ToolbarPreset';
-import {useToolbarMenu} from '../utils/useMenu';
+import { useToolbarMenu } from '../utils/useMenu';
 import ToolbarMenuItem from '../atoms/ToolbarMenuItem';
-import {useActionSheet} from '../utils/useActionSheet';
-import {useWaitingRoomContext} from './contexts/WaitingRoomContext';
+import { useActionSheet } from '../utils/useActionSheet';
+import { useWaitingRoomContext } from './contexts/WaitingRoomContext';
 import {
   toolbarItemChatText,
   toolbarItemPeopleText,
   videoRoomRecordingText,
 } from '../language/default-labels/videoCallScreenLabels';
-import {useLanguage} from '../language/useLanguage';
+import { useLanguage } from '../language/useLanguage';
 import Toast from '../../react-native-toast-message';
-import {logger, LogSource} from '../logger/AppBuilderLogger';
+import { logger, LogSource } from '../logger/AppBuilderLogger';
 import {
   ChatToolbarItem,
   ParticipantToolbarItem,
   SettingsToolbarItem,
+  TestToolbarItem,
 } from './controls/toolbar-items';
-import {useControlPermissionMatrix} from './controls/useControlPermissionMatrix';
+import { useControlPermissionMatrix } from './controls/useControlPermissionMatrix';
 
 export const ParticipantsCountView = ({
   isMobileView = false,
 }: {
   isMobileView?: boolean;
 }) => {
-  const {onlineUsersCount} = useContext(ChatContext);
+  const { onlineUsersCount } = useContext(ChatContext);
   const peopleLabel = useString(toolbarItemPeopleText)();
   return isMobileView ? (
     <Text>
@@ -74,7 +75,7 @@ export const ParticipantsCountView = ({
   ) : (
     <>
       {onlineUsersCount !== 0 && (
-        <View style={[{justifyContent: 'center'}]}>
+        <View style={[{ justifyContent: 'center' }]}>
           <View style={style.chip}>
             {onlineUsersCount > 0 && (
               <Text style={style.chipText}>
@@ -98,8 +99,8 @@ export interface ParticipantsIconButtonProps {
   render?: (onPress: () => void, isPanelActive: boolean) => JSX.Element;
 }
 export const ParticipantsIconButton = (props: ParticipantsIconButtonProps) => {
-  const {label = null, onPress: onPressCustom = null} = useToolbarProps();
-  const {isToolbarMenuItem} = useToolbarMenu();
+  const { label = null, onPress: onPressCustom = null } = useToolbarProps();
+  const { isToolbarMenuItem } = useToolbarMenu();
   const {
     liveStreamingRequestAlertIconPosition = {
       top: 0,
@@ -108,15 +109,15 @@ export const ParticipantsIconButton = (props: ParticipantsIconButtonProps) => {
       bottom: undefined,
     },
   } = props;
-  const {isOnActionSheet, showLabel} = useActionSheet();
-  const {sidePanel, setSidePanel} = useSidePanel();
-  const {isPendingRequestToReview} = useContext(LiveStreamContext);
+  const { isOnActionSheet, showLabel } = useActionSheet();
+  const { sidePanel, setSidePanel } = useSidePanel();
+  const { isPendingRequestToReview } = useContext(LiveStreamContext);
 
-  const {waitingRoomUids} = useWaitingRoomContext();
+  const { waitingRoomUids } = useWaitingRoomContext();
   const participantsLabel = useString(toolbarItemPeopleText)();
   const isPanelActive = sidePanel === SidePanelType.Participants;
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
 
   const isPendingWaitingRoomApproval = isHost && waitingRoomUids.length > 0;
@@ -176,9 +177,9 @@ export const ParticipantsIconButton = (props: ParticipantsIconButtonProps) => {
             <IconButton {...iconButtonProps} />
           </View>
           {isPendingWaitingRoomApproval ||
-          ($config.EVENT_MODE &&
-            $config.RAISE_HAND &&
-            isPendingRequestToReview) ? (
+            ($config.EVENT_MODE &&
+              $config.RAISE_HAND &&
+              isPendingRequestToReview) ? (
             <View
               style={{
                 position: 'absolute',
@@ -217,10 +218,10 @@ export interface ChatIconButtonProps {
 }
 
 export const ChatIconButton = (props: ChatIconButtonProps) => {
-  const {label = null, onPress: onPressCustom = null} = useToolbarProps();
-  const {sidePanel, setSidePanel} = useSidePanel();
-  const {isToolbarMenuItem} = useToolbarMenu();
-  const {data} = useRoomInfo();
+  const { label = null, onPress: onPressCustom = null } = useToolbarProps();
+  const { sidePanel, setSidePanel } = useSidePanel();
+  const { isToolbarMenuItem } = useToolbarMenu();
+  const { data } = useRoomInfo();
   //disable chat button when BE sends error on chat
   const ChatError =
     data?.chat?.error && (data?.chat?.error?.code || data?.chat?.error?.message)
@@ -235,8 +236,8 @@ export const ChatIconButton = (props: ChatIconButtonProps) => {
       zIndex: 999,
     },
   } = props;
-  const {totalUnreadCount} = useChatNotification();
-  const {setChatType, setPrivateChatUser} = useChatUIControls();
+  const { totalUnreadCount } = useChatNotification();
+  const { setChatType, setPrivateChatUser } = useChatUIControls();
 
   const chatLabel = useString(toolbarItemChatText)();
 
@@ -285,7 +286,7 @@ export const ChatIconButton = (props: ChatIconButtonProps) => {
       }
     }
   };
-  const {isOnActionSheet, showLabel} = useActionSheet();
+  const { isOnActionSheet, showLabel } = useActionSheet();
   let iconButtonProps: IconButtonProps = {
     onPress: onPressCustom || onPress,
     iconProps: {
@@ -350,6 +351,67 @@ export const ChatIconButton = (props: ChatIconButtonProps) => {
   );
 };
 
+export interface TestIconButtonProps {
+  render?: (onPress: () => void, isPanelActive: boolean) => JSX.Element;
+}
+
+export const TestIconButton = (props: TestIconButtonProps) => {
+  const { label = null, onPress: onPressCustom = null } = useToolbarProps();
+  const { sidePanel, setSidePanel } = useSidePanel();
+  const { isToolbarMenuItem } = useToolbarMenu();
+  const { isOnActionSheet, showLabel } = useActionSheet();
+
+  const testLabel = 'Engagement';
+  const isPanelActive = sidePanel === SidePanelType.TestPanel;
+
+  const onPress = () => {
+    isPanelActive
+      ? setSidePanel(SidePanelType.None)
+      : setSidePanel(SidePanelType.TestPanel);
+  };
+
+  let iconButtonProps: IconButtonProps = {
+    onPress: onPressCustom || onPress,
+    iconProps: {
+      name: 'spotlight', //
+      tintColor: isPanelActive
+        ? $config.PRIMARY_ACTION_TEXT_COLOR
+        : $config.SECONDARY_ACTION_COLOR,
+      iconBackgroundColor: isPanelActive
+        ? $config.PRIMARY_ACTION_BRAND_COLOR
+        : '',
+    },
+    btnTextProps: {
+      text: showLabel ? label || testLabel : '',
+      textColor: $config.FONT_COLOR,
+    },
+  };
+
+  if (isOnActionSheet) {
+    iconButtonProps.btnTextProps.textStyle = {
+      color: $config.FONT_COLOR,
+      marginTop: 8,
+      fontSize: 12,
+      fontWeight: '400',
+      fontFamily: 'Source Sans Pro',
+      textAlign: 'center',
+    };
+  }
+  iconButtonProps.isOnActionSheet = isOnActionSheet;
+
+  return props?.render ? (
+    props.render(onPress, isPanelActive)
+  ) : (
+    <View>
+      {isToolbarMenuItem ? (
+        <ToolbarMenuItem {...iconButtonProps} />
+      ) : (
+        <IconButton {...iconButtonProps} />
+      )}
+    </View>
+  );
+};
+
 export const SettingsIconButton = (props: SettingsIconButtonProps) => {
   return <Settings {...props} />;
 };
@@ -361,7 +423,7 @@ export const SettingsIconButtonWithWrapper = (
 
 export const MeetingTitleToolbarItem = () => {
   const {
-    data: {meetingTitle},
+    data: { meetingTitle },
   } = useRoomInfo();
   return (
     <ToolbarItem>
@@ -398,7 +460,7 @@ export const RecordingStatusToolbarItem = () => {
   const recordingLabel = useString(videoRoomRecordingText)(
     $config.RECORDING_MODE,
   );
-  const {isRecordingActive} = useRecording();
+  const { isRecordingActive } = useRecording();
   return isRecordingActive ? (
     <ToolbarItem>
       <View
@@ -424,9 +486,10 @@ export interface NavbarProps {
 }
 
 const Navbar = (props: NavbarProps) => {
-  const {includeDefaultItems = true, items = {}} = props;
-  const {width, height} = useWindowDimensions();
-  const {languageCode} = useLanguage();
+  const { includeDefaultItems = true, items = {} } = props;
+  const { width, height } = useWindowDimensions();
+  const { languageCode } = useLanguage();
+  const { data: { isHost } } = useRoomInfo();
   const canAccessParticipants =
     useControlPermissionMatrix('participantControl');
   const canAccessChat = useControlPermissionMatrix('chatControl');
@@ -465,6 +528,14 @@ const Navbar = (props: NavbarProps) => {
           return w < BREAKPOINTS.lg ? true : false;
         },
       },
+      test: {  // Add this new item
+        align: 'end',
+        component: isHost ? TestToolbarItem : null,
+        order: 2,
+        hide: w => {
+          return w < BREAKPOINTS.lg ? true : false;
+        },
+      },
       settings: {
         align: 'end',
         component: canAccessSettings ? SettingsToolbarItem : null,
@@ -481,8 +552,8 @@ const Navbar = (props: NavbarProps) => {
       return typeof hide === 'boolean'
         ? hide
         : typeof hide === 'function'
-        ? hide(width, height)
-        : false;
+          ? hide(width, height)
+          : false;
     } catch (error) {
       console.log('debugging isHidden error', error);
       return false;
@@ -603,7 +674,7 @@ const style = StyleSheet.create({
     borderWidth: 1,
     borderColor: $config.CARD_LAYER_3_COLOR,
     shadowColor: $config.HARD_CODED_BLACK_COLOR,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
   },

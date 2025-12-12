@@ -9,6 +9,7 @@ import {
   PeopleHeader,
   SettingsHeader,
   TranscriptHeader,
+  TestPanelHeader
 } from './SidePanelHeader';
 
 const ActionSheetHandle = (props: {
@@ -32,6 +33,7 @@ const ActionSheetHandle = (props: {
       {sidePanel === SidePanelType.Chat && <ChatHeader />}
       {sidePanel === SidePanelType.Settings && <SettingsHeader />}
       {sidePanel === SidePanelType.Transcript && <TranscriptHeader />}
+      {sidePanel === SidePanelType.TestPanel && <TestPanelHeader />}
       {isCustomSidePanel && <CustomSidePanelHeader {...customSidePanelProps} />}
     </View>
   );

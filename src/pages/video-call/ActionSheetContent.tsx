@@ -6,7 +6,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import React, {useContext} from 'react';
+import React, { useContext } from 'react';
 import ImageIcon from '../../atoms/ImageIcon';
 import LocalAudioMute from '../../subComponents/LocalAudioMute';
 import LocalVideoMute from '../../subComponents/LocalVideoMute';
@@ -14,16 +14,16 @@ import LocalEndcall from '../../subComponents/LocalEndCall';
 import LocalSwitchCamera from '../../subComponents/LocalSwitchCamera';
 import Recording from '../../subComponents/Recording';
 import ChatContext from '../../components/ChatContext';
-import {PropsContext} from '../../../agora-rn-uikit';
-import {ClientRoleType} from '../../../agora-rn-uikit';
+import { PropsContext } from '../../../agora-rn-uikit';
+import { ClientRoleType } from '../../../agora-rn-uikit';
 import {
   RoomInfoContextInterface,
   useRoomInfo,
 } from '../../components/room-info/useRoomInfo';
 import LiveStreamControls from '../../components/livestream/views/LiveStreamControls';
-import LiveStreamContext, {RaiseHandValue} from '../../components/livestream';
+import LiveStreamContext, { RaiseHandValue } from '../../components/livestream';
 
-import {useChatNotification} from '../../components/chat-notification/useChatNotification';
+import { useChatNotification } from '../../components/chat-notification/useChatNotification';
 import {
   useContent,
   useLocalUserInfo,
@@ -36,8 +36,8 @@ import LayoutIconButton from '../../subComponents/LayoutIconButton';
 import CaptionIcon from '../../../src/subComponents/caption/CaptionIcon';
 import TranscriptIcon from '../../../src/subComponents/caption/TranscriptIcon';
 import Carousel from '../../atoms/Carousel';
-import {useCaption} from '../../subComponents/caption/useCaption';
-import {getLanguageLabel} from '../../subComponents/caption/utils';
+import { useCaption } from '../../subComponents/caption/useCaption';
+import { getLanguageLabel } from '../../subComponents/caption/utils';
 import Toast from '../../../react-native-toast-message';
 import {
   CustomToolbarMerge,
@@ -45,26 +45,27 @@ import {
   isIOS,
   isAndroid,
 } from '../../utils/common';
-import {ActionSheetProvider} from '../../utils/useActionSheet';
-import {useWaitingRoomContext} from '../../components/contexts/WaitingRoomContext';
-import {useSetRoomInfo} from '../../components/room-info/useSetRoomInfo';
+import { ActionSheetProvider } from '../../utils/useActionSheet';
+import { useWaitingRoomContext } from '../../components/contexts/WaitingRoomContext';
+import { useSetRoomInfo } from '../../components/room-info/useSetRoomInfo';
 import VBButton from '../../components/virtual-background/VBButton';
-import {useVB} from '../../components/virtual-background/useVB';
-import {useString} from '../../utils/useString';
+import { useVB } from '../../components/virtual-background/useVB';
+import { useString } from '../../utils/useString';
 import {
   sttSpokenLanguageToastHeading,
   sttSpokenLanguageToastSubHeading,
 } from '../../language/default-labels/videoCallScreenLabels';
-import {filterObject} from '../../utils/index';
-import {useLanguage} from '../../language/useLanguage';
+import { filterObject } from '../../utils/index';
+import { useLanguage } from '../../language/useLanguage';
 import {
   ChatToolbarItem,
   ParticipantToolbarItem,
   SettingsToolbarItem,
   InviteToolbarItem,
   ScreenshareToolbarItem,
+  TestToolbarItem,  // Add this
 } from '../../components/controls/toolbar-items';
-import {useControlPermissionMatrix} from '../../components/controls/useControlPermissionMatrix';
+import { useControlPermissionMatrix } from '../../components/controls/useControlPermissionMatrix';
 //Icon for expanding Action Sheet
 interface ShowMoreIconProps {
   isExpanded: boolean;
@@ -72,7 +73,7 @@ interface ShowMoreIconProps {
   onPress: () => void;
 }
 const ShowMoreIcon = (props: ShowMoreIconProps) => {
-  const {isExpanded, onPress, showNotification} = props;
+  const { isExpanded, onPress, showNotification } = props;
   return (
     <ToolbarItem>
       <View style={styles.iconContainer}>
@@ -105,7 +106,7 @@ const RecordingIcon = props => {
 };
 
 const VBIcon = props => {
-  const {isVBActive, setIsVBActive} = useVB();
+  const { isVBActive, setIsVBActive } = useVB();
   return (
     <ToolbarItem toolbarProps={props}>
       <VBButton
@@ -163,7 +164,7 @@ interface CaptionIconBtnProps {
 }
 
 const CaptionIconBtn = (props: CaptionIconBtnProps) => {
-  const {onPressCallback = () => {}} = props;
+  const { onPressCallback = () => { } } = props;
   return (
     <ToolbarItem toolbarProps={props}>
       <CaptionIcon
@@ -205,22 +206,22 @@ const ActionSheetContent = props => {
     items = {},
   } = props;
 
-  const {localUid} = useContext(ChatContext);
-  const {rtcProps} = useContext(PropsContext);
-  const {setRoomInfo} = useSetRoomInfo();
+  const { localUid } = useContext(ChatContext);
+  const { rtcProps } = useContext(PropsContext);
+  const { setRoomInfo } = useSetRoomInfo();
   const {
-    data: {isHost},
+    data: { isHost },
     sttLanguage,
     isSTTActive,
   } = useRoomInfo();
-  const {isPendingRequestToReview, raiseHandList} =
+  const { isPendingRequestToReview, raiseHandList } =
     useContext(LiveStreamContext);
-  const {totalUnreadCount} = useChatNotification();
-  const {setIsSTTActive, setLanguage, setMeetingTranscript} = useCaption();
-  const {defaultContent} = useContent();
-  const {waitingRoomUids} = useWaitingRoomContext();
+  const { totalUnreadCount } = useChatNotification();
+  const { setIsSTTActive, setLanguage, setMeetingTranscript } = useCaption();
+  const { defaultContent } = useContent();
+  const { waitingRoomUids } = useWaitingRoomContext();
   const defaultContentRef = React.useRef(defaultContent);
-  const {addStreamMessageListener} = useSpeechToText();
+  const { addStreamMessageListener } = useSpeechToText();
 
   React.useEffect(() => {
     defaultContentRef.current = defaultContent;
@@ -247,11 +248,10 @@ const ActionSheetContent = props => {
       prevLang.indexOf('') !== -1
         ? `has set the spoken language to  "${getLanguageLabel(newLang)}" `
         : `changed the spoken language from "${getLanguageLabel(
-            prevLang,
-          )}" to "${getLanguageLabel(newLang)}" `;
-    const msg = `${
-      defaultContentRef.current[uid]?.name || username
-    } ${actionText} `;
+          prevLang,
+        )}" to "${getLanguageLabel(newLang)}" `;
+    const msg = `${defaultContentRef.current[uid]?.name || username
+      } ${actionText} `;
 
     let subheadingObj: any = {};
     if (prevLang.indexOf('') !== -1) {
@@ -280,7 +280,7 @@ const ActionSheetContent = props => {
     setRoomInfo(prev => {
       return {
         ...prev,
-        sttLanguage: {...sttLanguage, langChanged: false},
+        sttLanguage: { ...sttLanguage, langChanged: false },
       };
     });
     // syncing local set language
@@ -336,7 +336,7 @@ const ActionSheetContent = props => {
       order: $config.RAISE_HAND && isAudioRoom ? 0 : 4,
       component:
         ((isAudioCastAudience && isLiveStream && isAudience) ||
-        (isBroadCasting && !isHost)
+          (isBroadCasting && !isHost)
           ? LiveStreamIcon
           : null) ||
         ((isLiveStream && isAudience) || (isBroadCasting && !isHost)
@@ -401,44 +401,35 @@ const ActionSheetContent = props => {
       order: 11,
       component: canAccessInvite ? InviteToolbarItem : null,
     },
-    caption: {
+     test: {
       order: 12,
-      component: CaptionIconBtn,
-      props: {
-        onPressCallback: () => {
-          handleSheetChanges(isExpanded ? 0 : 1);
-        },
-      },
-    },
-    transcript: {
-      order: 13,
-      component: TranscriptIconBtn,
+      component: isHost ? TestToolbarItem : null,
     },
   };
 
-  const {width, height} = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const isHidden = (hide: ToolbarItemHide = false) => {
     try {
       return typeof hide === 'boolean'
         ? hide
         : typeof hide === 'function'
-        ? hide(width, height)
-        : false;
+          ? hide(width, height)
+          : false;
     } catch (error) {
       console.log('debugging isHidden error', error);
       return false;
     }
   };
 
-  const combinedData = {...items, ...items?.more?.fields};
+  const combinedData = { ...items, ...items?.more?.fields };
 
   const mergedItems = CustomToolbarMerge(
     includeDefaultItems ? defaultItems : {},
     combinedData,
   );
 
-  const {languageCode} = useLanguage();
+  const { languageCode } = useLanguage();
   const customLabel = (labelParam: ToolbarItemLabel) => {
     if (labelParam && typeof labelParam === 'string') {
       return labelParam;
@@ -466,7 +457,7 @@ const ActionSheetContent = props => {
         <View
           style={[
             styles.row,
-            {borderBottomWidth: 1, paddingTop: 4, justifyContent: 'center'},
+            { borderBottomWidth: 1, paddingTop: 4, justifyContent: 'center' },
           ]}>
           {/**If no items more than 4 then render firstrender first 3 items and render show more icon  */}
           {/**If no items more less or equal to 4 then render n items and don't show more icon  */}
@@ -520,8 +511,8 @@ const ActionSheetContent = props => {
     </View>
   );
 };
-const CarouselWrapper = ({data, dataObject}) => {
-  const {languageCode} = useLanguage();
+const CarouselWrapper = ({ data, dataObject }) => {
+  const { languageCode } = useLanguage();
   const customLabel = (labelParam: ToolbarItemLabel) => {
     if (labelParam && typeof labelParam === 'string') {
       return labelParam;
@@ -576,7 +567,7 @@ const CarouselWrapper = ({data, dataObject}) => {
   const isPaginationRequired = slides.length > 1;
 
   return (
-    <View style={{flexDirection: 'row'}}>
+    <View style={{ flexDirection: 'row' }}>
       <Carousel data={slides} isPaginationRequired={isPaginationRequired} />
     </View>
   );

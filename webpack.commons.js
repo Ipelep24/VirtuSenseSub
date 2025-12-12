@@ -124,7 +124,7 @@ module.exports = {
         },
       },
       {
-        test: /\.(mp4|png|gif)$/i,
+        test: /\.(mp3|mp4|png|gif)$/i,
         use: [
           {
             loader: 'file-loader',

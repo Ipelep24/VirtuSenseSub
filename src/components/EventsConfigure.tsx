@@ -1,5 +1,5 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
-import {StyleSheet, View, TouchableOpacity, Text} from 'react-native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import {
   RtcContext,
   DispatchContext,
@@ -7,26 +7,26 @@ import {
   PropsContext,
   PermissionState,
 } from '../../agora-rn-uikit';
-import events, {PersistanceLevel} from '../rtm-events-api';
-import ChatContext, {controlMessageEnum} from '../components/ChatContext';
+import events, { PersistanceLevel } from '../rtm-events-api';
+import ChatContext, { controlMessageEnum } from '../components/ChatContext';
 import Toast from '../../react-native-toast-message';
 import TertiaryButton from '../atoms/TertiaryButton';
-import {useContent, useLocalUserInfo, useSpeechToText} from 'customization-api';
-import {isAndroid, isIOS, isWebInternal} from '../utils/common';
-import {useScreenshare} from '../subComponents/screenshare/useScreenshare';
+import { useContent, useLocalUserInfo, useSpeechToText } from 'customization-api';
+import { isAndroid, isIOS, isWebInternal } from '../utils/common';
+import { useScreenshare } from '../subComponents/screenshare/useScreenshare';
 import {
   RoomInfoContextInterface,
   useRoomInfo,
 } from '../components/room-info/useRoomInfo';
-import {useSetRoomInfo} from '../components/room-info/useSetRoomInfo';
-import {EventNames} from '../rtm-events';
-import {useWaitingRoomContext} from './contexts/WaitingRoomContext';
+import { useSetRoomInfo } from '../components/room-info/useSetRoomInfo';
+import { EventNames } from '../rtm-events';
+import { useWaitingRoomContext } from './contexts/WaitingRoomContext';
 import useWaitingRoomAPI from '../../src/subComponents/waiting-rooms/useWaitingRoomAPI';
 import LocalEventEmitter, {
   LocalEventsEnum,
 } from '../../src/rtm-events-api/LocalEvents';
-import {ENABLE_AUTH} from '../auth/config';
-import {useAuth} from '../auth/AuthProvider';
+import { ENABLE_AUTH } from '../auth/config';
+import { useAuth } from '../auth/AuthProvider';
 import ThemeConfig from '../theme';
 import {
   I18nMuteType,
@@ -40,10 +40,12 @@ import {
   waitingRoomApprovalRequiredToastHeading,
   waitingRoomApprovalRequiredToastSubHeading,
 } from '../language/default-labels/videoCallScreenLabels';
-import {useString} from '../utils/useString';
+import { useString } from '../utils/useString';
 import useEndCall from '../utils/useEndCall';
-import {logger, LogSource} from '../logger/AppBuilderLogger';
-import {useIsRecordingBot} from '../subComponents/recording/useIsRecordingBot';
+import { logger, LogSource } from '../logger/AppBuilderLogger';
+import { useIsRecordingBot } from '../subComponents/recording/useIsRecordingBot';
+import alertSound from '../assets/alert.mp3'
+import alertRequest from '../assets/alertRequest.mp3'
 
 interface Props {
   children: React.ReactNode;
@@ -58,8 +60,27 @@ const EventsConfigure: React.FC<Props> = ({
   setSttAutoStarted,
   sttAutoStarted,
 }) => {
-  const {isRecordingBot} = useIsRecordingBot();
+  const { isRecordingBot } = useIsRecordingBot();
   const isSTTAlreadyActiveRef = useRef(undefined);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const requestAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // ADD THIS: Initialize notification sound
+  useEffect(() => {
+    if (isWebInternal()) {
+      // You can use a public notification sound URL or host your own
+      notificationAudioRef.current = new Audio(alertSound);
+      requestAudioRef.current = new Audio(alertRequest);
+      // Or if you have your own sound file in public folder:
+      // notificationAudioRef.current = new Audio('/notification.mp3');
+    }
+
+    return () => {
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current = null;
+      }
+    };
+  }, []);
   // mute user audio
   const hostMutedUserAudioToastHeadingTT = useString<I18nMuteType>(
     hostMutedUserToastHeading,
@@ -223,28 +244,28 @@ const EventsConfigure: React.FC<Props> = ({
   }, [waitingRoomApprovalRequiredSecondaryBtnTextTT]);
 
   const isLiveStream = $config.EVENT_MODE;
-  const {dispatch} = useContext(DispatchContext);
-  const {RtcEngineUnsafe} = useContext(RtcContext);
-  const {defaultContent, activeUids} = useContent();
-  const defaultContentRef = useRef({defaultContent});
+  const { dispatch } = useContext(DispatchContext);
+  const { RtcEngineUnsafe } = useContext(RtcContext);
+  const { defaultContent, activeUids } = useContent();
+  const defaultContentRef = useRef({ defaultContent });
 
   useEffect(() => {
     defaultContentRef.current.defaultContent = defaultContent;
   }, [defaultContent]);
   const {
-    data: {isHost, roomId},
-    roomPreference: {userRemovalTimeout},
+    data: { isHost, roomId },
+    roomPreference: { userRemovalTimeout },
   } = useRoomInfo();
-  const {setRoomInfo} = useSetRoomInfo();
+  const { setRoomInfo } = useSetRoomInfo();
   const isHostRef = React.useRef(isHost);
-  const {permissionStatus} = useLocalUserInfo();
+  const { permissionStatus } = useLocalUserInfo();
   const permissionStatusRef = React.useRef(permissionStatus);
-  const {waitingRoomUids, waitingRoomRef} = useWaitingRoomContext();
+  const { waitingRoomUids, waitingRoomRef } = useWaitingRoomContext();
   const waitingRoomUidsRef = React.useRef(waitingRoomUids);
-  const {approval} = useWaitingRoomAPI();
+  const { approval } = useWaitingRoomAPI();
   const localUid = useLocalUid();
   const activeUidsRef = React.useRef(activeUids);
-  const {authLogin} = useAuth();
+  const { authLogin } = useAuth();
   React.useEffect(() => {
     activeUidsRef.current = activeUids;
   }, [activeUids]);
@@ -257,8 +278,8 @@ const EventsConfigure: React.FC<Props> = ({
     permissionStatusRef.current = permissionStatus;
   }, [permissionStatus]);
 
-  const {hasUserJoinedRTM, isInitialQueueCompleted} = useContext(ChatContext);
-  const {startSpeechToText, addStreamMessageListener} = useSpeechToText();
+  const { hasUserJoinedRTM, isInitialQueueCompleted } = useContext(ChatContext);
+  const { startSpeechToText, addStreamMessageListener } = useSpeechToText();
 
   //auto start stt
   useEffect(() => {
@@ -331,7 +352,7 @@ const EventsConfigure: React.FC<Props> = ({
     //     });
     //   }
     // });
-    events.on(controlMessageEnum.muteVideo, async ({payload, sender}) => {
+    events.on(controlMessageEnum.muteVideo, async ({ payload, sender }) => {
       Toast.show({
         leadingIconName: 'video-off',
         type: 'info',
@@ -347,14 +368,14 @@ const EventsConfigure: React.FC<Props> = ({
       isWebInternal()
         ? await RtcEngineUnsafe.muteLocalVideoStream(true)
         : //@ts-ignore
-          await RtcEngineUnsafe.enableLocalVideo(false);
+        await RtcEngineUnsafe.enableLocalVideo(false);
       await updateVideoStream(true);
       dispatch({
         type: 'LocalMuteVideo',
         value: [0],
       });
     });
-    events.on(controlMessageEnum.muteAudio, async ({sender}) => {
+    events.on(controlMessageEnum.muteAudio, async ({ sender }) => {
       Toast.show({
         leadingIconName: 'mic-off',
         type: 'info',
@@ -370,7 +391,7 @@ const EventsConfigure: React.FC<Props> = ({
       isWebInternal()
         ? await RtcEngineUnsafe.muteLocalAudioStream(true)
         : //@ts-ignore
-          await RtcEngineUnsafe.enableLocalAudio(false);
+        await RtcEngineUnsafe.enableLocalAudio(false);
       dispatch({
         type: 'LocalMuteAudio',
         value: [0],
@@ -402,6 +423,11 @@ const EventsConfigure: React.FC<Props> = ({
     });
 
     events.on(controlMessageEnum.requestAudio, () => {
+      if (isWebInternal() && notificationAudioRef.current) {
+        requestAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
+      }
       Toast.show({
         leadingIconName: 'mic-on',
         type: 'info',
@@ -411,7 +437,7 @@ const EventsConfigure: React.FC<Props> = ({
         primaryBtn:
           permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_AND_MIC ||
-          permissionStatusRef.current ===
+            permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_MIC_ONLY ? (
             <PrimaryButton
               containerStyle={style.primaryBtn}
@@ -421,7 +447,7 @@ const EventsConfigure: React.FC<Props> = ({
                 isWebInternal()
                   ? await RtcEngineUnsafe.muteLocalAudioStream(false)
                   : //@ts-ignore
-                    await RtcEngineUnsafe.enableLocalAudio(true);
+                  await RtcEngineUnsafe.enableLocalAudio(true);
                 dispatch({
                   type: 'LocalMuteAudio',
                   value: [1],
@@ -433,13 +459,18 @@ const EventsConfigure: React.FC<Props> = ({
         secondaryBtn:
           permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_AND_MIC ||
-          permissionStatusRef.current ===
+            permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_MIC_ONLY ? (
             <SecondaryBtn text={requestUserAudioSecondaryBtnRef.current} />
           ) : null,
       });
     });
     events.on(controlMessageEnum.requestVideo, () => {
+      if (isWebInternal() && notificationAudioRef.current) {
+        requestAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
+      }
       Toast.show({
         leadingIconName: 'video-on',
         type: 'info',
@@ -449,7 +480,7 @@ const EventsConfigure: React.FC<Props> = ({
         primaryBtn:
           permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_AND_MIC ||
-          permissionStatusRef.current ===
+            permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_ONLY ? (
             <PrimaryButton
               containerStyle={style.primaryBtn}
@@ -459,7 +490,7 @@ const EventsConfigure: React.FC<Props> = ({
                 isWebInternal()
                   ? await RtcEngineUnsafe.muteLocalVideoStream(false)
                   : //@ts-ignore
-                    await RtcEngineUnsafe.enableLocalVideo(true);
+                  await RtcEngineUnsafe.enableLocalVideo(true);
                 await updateVideoStream(false);
                 dispatch({
                   type: 'LocalMuteVideo',
@@ -472,14 +503,14 @@ const EventsConfigure: React.FC<Props> = ({
         secondaryBtn:
           permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_AND_MIC ||
-          permissionStatusRef.current ===
+            permissionStatusRef.current ===
             PermissionState.GRANTED_FOR_CAM_ONLY ? (
             <SecondaryBtn text={requestUserVideoSecondaryBtnRef.current} />
           ) : null,
       });
     });
 
-    events.on(EventNames.WHITEBOARD_ACTIVE, ({payload}) => {
+    events.on(EventNames.WHITEBOARD_ACTIVE, ({ payload }) => {
       const data = JSON.parse(payload);
       if (data && data?.status) {
         if (
@@ -516,7 +547,7 @@ const EventsConfigure: React.FC<Props> = ({
       }
     });
 
-    events.on(EventNames.BOARD_COLOR_CHANGED, ({payload}) => {
+    events.on(EventNames.BOARD_COLOR_CHANGED, ({ payload }) => {
       const data = JSON.parse(payload);
       if (data?.boardColor) {
         if (
@@ -537,7 +568,7 @@ const EventsConfigure: React.FC<Props> = ({
       }
     });
 
-    events.on(EventNames.WHITEBOARD_LAST_IMAGE_UPLOAD_POSITION, ({payload}) => {
+    events.on(EventNames.WHITEBOARD_LAST_IMAGE_UPLOAD_POSITION, ({ payload }) => {
       const data = JSON.parse(payload);
       if (
         ($config.ENABLE_WAITING_ROOM && !isHostRef.current) ||
@@ -546,7 +577,7 @@ const EventsConfigure: React.FC<Props> = ({
         setRoomInfo(prev => {
           return {
             ...prev,
-            whiteboardLastImageUploadPosition: {height: data?.height || 0},
+            whiteboardLastImageUploadPosition: { height: data?.height || 0 },
           };
         });
       } else {
@@ -599,11 +630,11 @@ const EventsConfigure: React.FC<Props> = ({
 
     events.on(EventNames.WAITING_ROOM_STATUS_UPDATE, data => {
       if (!isHostRef.current) return;
-      const {attendee_uid, approved} = JSON.parse(data?.payload);
+      const { attendee_uid, approved } = JSON.parse(data?.payload);
       // update waiting room status in other host's panel
       dispatch({
         type: 'UpdateRenderList',
-        value: [attendee_uid, {isInWaitingRoom: false}],
+        value: [attendee_uid, { isInWaitingRoom: false }],
       });
 
       waitingRoomRef.current[attendee_uid] = approved ? 'APPROVED' : 'REJECTED';
@@ -621,7 +652,7 @@ const EventsConfigure: React.FC<Props> = ({
         waitingRoomRef.current,
       );
 
-      const {attendee_uid, attendee_screenshare_uid} = JSON.parse(
+      const { attendee_uid, attendee_screenshare_uid } = JSON.parse(
         data?.payload,
       );
       if (attendee_uid == '') return;
@@ -651,7 +682,7 @@ const EventsConfigure: React.FC<Props> = ({
       // put the attendee in waitingroom in renderlist
       dispatch({
         type: 'UpdateRenderList',
-        value: [attendee_uid, {isInWaitingRoom: true}],
+        value: [attendee_uid, { isInWaitingRoom: true }],
       });
 
       waitingRoomRef.current[attendee_uid] = 'PENDING';
@@ -667,7 +698,7 @@ const EventsConfigure: React.FC<Props> = ({
         });
         dispatch({
           type: 'UpdateRenderList',
-          value: [attendee_uid, {isInWaitingRoom: false}],
+          value: [attendee_uid, { isInWaitingRoom: false }],
         });
 
         waitingRoomRef.current[attendee_uid] = 'APPROVED';
@@ -676,7 +707,7 @@ const EventsConfigure: React.FC<Props> = ({
         // inform other that hosts as well
         events.send(
           EventNames.WAITING_ROOM_STATUS_UPDATE,
-          JSON.stringify({attendee_uid, approved: true}),
+          JSON.stringify({ attendee_uid, approved: true }),
           PersistanceLevel.None,
         );
         // server will send the RTM message with approved status and RTC token to the approved attendee.
@@ -685,6 +716,12 @@ const EventsConfigure: React.FC<Props> = ({
       if ($config.ENABLE_WAITING_ROOM_AUTO_APPROVAL) {
         approveWaitingRoomRequest();
         return;
+      }
+
+      if (isWebInternal() && notificationAudioRef.current) {
+        notificationAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
       }
 
       let btns: any = {};
@@ -715,7 +752,7 @@ const EventsConfigure: React.FC<Props> = ({
             });
             dispatch({
               type: 'UpdateRenderList',
-              value: [attendee_uid, {isInWaitingRoom: false}],
+              value: [attendee_uid, { isInWaitingRoom: false }],
             });
 
             waitingRoomRef.current[attendee_uid] = 'REJECTED';
@@ -724,7 +761,7 @@ const EventsConfigure: React.FC<Props> = ({
             // inform other that hosts as well
             events.send(
               'WAITING_ROOM_STATUS_UPDATE',
-              JSON.stringify({attendee_uid, approved: false}),
+              JSON.stringify({ attendee_uid, approved: false }),
               PersistanceLevel.None,
             );
             console.log('waiting-room:reject', res);
@@ -871,7 +908,7 @@ const EventsConfigure: React.FC<Props> = ({
 export default EventsConfigure;
 
 const style = StyleSheet.create({
-  secondaryBtn: {marginLeft: 12, paddingVertical: 6, paddingHorizontal: 10},
+  secondaryBtn: { marginLeft: 12, paddingVertical: 6, paddingHorizontal: 10 },
   primaryBtn: {
     borderRadius: 4,
     backgroundColor: $config.PRIMARY_ACTION_BRAND_COLOR,
@@ -898,7 +935,7 @@ const SecondaryBtn = props => (
 );
 
 const PrimaryButton = props => {
-  const {text, containerStyle, textStyle, onPress} = props;
+  const { text, containerStyle, textStyle, onPress } = props;
   return (
     <TouchableOpacity style={containerStyle} onPress={onPress}>
       <Text style={textStyle}>{text}</Text>

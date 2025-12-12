@@ -93,6 +93,22 @@ export const PeopleHeader = () => {
   );
 };
 
+export const TestPanelHeader = () => {
+  const {setSidePanel} = useSidePanel();
+  
+  return (
+    <SidePanelHeader
+      centerComponent={
+        <Text style={SidePanelStyles.heading}>Engagement</Text>
+      }
+      trailingIconName="close"
+      trailingIconOnPress={() => {
+        setSidePanel(SidePanelType.None);
+      }}
+    />
+  );
+};
+
 export const ChatHeader = () => {
   const {
     unreadGroupMessageCount,

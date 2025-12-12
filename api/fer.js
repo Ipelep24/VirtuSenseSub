@@ -11,8 +11,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        api_key: 'aucWDnPrW5RKzSioOqf9zZzSqGeS1nKk',
-        api_secret: 'ZhEI7ViTO7ZPfQYYctEBKuFaFbRdnt1S',
+        api_key: 'AC9X2gGAk5cBF5NUAJI1LuM2oCL7tnda',
+        api_secret: 'yTKrE2ftkweHivzzPzmwpz5ZCHtOMu4d',
         image_base64: base64,
         return_attributes: 'emotion',
       }),
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
 
     const result = await response.json();
     res.status(200).json(result);
+    console.log(result)
   } catch (err) {
     console.error('FER proxy error:', err.stack || err.message);
     res.status(500).json({ error: 'FER proxy failed', details: err.message });

@@ -3,3 +3,4 @@ export {InviteToolbarItem} from './InviteToolbarItem';
 export {ParticipantToolbarItem} from './ParticipantToolbarItem';
 export {ScreenshareToolbarItem} from './ScreenshareToolbarItem';
 export {SettingsToolbarItem} from './SettingsToolbarItem';
+export {TestToolbarItem} from './TestToolbarItem'; // Add this line

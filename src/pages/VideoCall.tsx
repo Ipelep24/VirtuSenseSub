@@ -74,6 +74,7 @@ import useGetName from '../utils/useGetName';
 import { useAuth } from './auth/AuthContext';
 import { IRtcEngine } from 'react-native-agora';
 import { useContent } from 'customization-api';
+import { EmotionSnapshotProvider } from '../components/EmotionSnapshotContext';
 
 enum RnEncryptionEnum {
   None = 0,
@@ -499,13 +500,15 @@ const VideoCall: React.FC = () => {
                                                                   }>
                                                                   <SdkMuteToggleListener>
                                                                     {callActive ? (
-                                                                      <VideoMeetingDataProvider>
-                                                                        <VideoCallProvider>
-                                                                          <DisableChatProvider>
-                                                                            <VideoCallScreenWrapper />
-                                                                          </DisableChatProvider>
-                                                                        </VideoCallProvider>
-                                                                      </VideoMeetingDataProvider>
+                                                                      <EmotionSnapshotProvider>
+                                                                        <VideoMeetingDataProvider>
+                                                                          <VideoCallProvider>
+                                                                            <DisableChatProvider>
+                                                                              <VideoCallScreenWrapper />
+                                                                            </DisableChatProvider>
+                                                                          </VideoCallProvider>
+                                                                        </VideoMeetingDataProvider>
+                                                                      </EmotionSnapshotProvider>
                                                                     ) : $config.PRECALL ? (
                                                                       <PreCallProvider
                                                                         value={{

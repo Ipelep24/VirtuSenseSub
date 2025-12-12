@@ -1,7 +1,7 @@
-import {createHook} from 'customization-implementation';
-import React, {useState, useEffect, useRef, useContext} from 'react';
-import {useContent, useRoomInfo} from 'customization-api';
-import {SidePanelType} from '../../subComponents/SidePanelEnum';
+import { createHook } from 'customization-implementation';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useContent, useRoomInfo } from 'customization-api';
+import { SidePanelType } from '../../subComponents/SidePanelEnum';
 import {
   useLocalUid,
   UidType,
@@ -12,13 +12,13 @@ import {
   ChatType as ChatType,
   useChatUIControls,
 } from '../chat-ui/useChatUIControls';
-import {useChatNotification} from '../chat-notification/useChatNotification';
+import { useChatNotification } from '../chat-notification/useChatNotification';
 import Toast from '../../../react-native-toast-message';
-import {timeNow} from '../../rtm/utils';
-import {useSidePanel} from '../../utils/useSidePanel';
+import { timeNow } from '../../rtm/utils';
+import { useSidePanel } from '../../utils/useSidePanel';
 import getUniqueID from '../../utils/getUniqueID';
-import {trimText} from '../../utils/common';
-import {useStringRef} from '../../utils/useString';
+import { isWebInternal, trimText } from '../../utils/common';
+import { useStringRef } from '../../utils/useString';
 import {
   publicChatToastHeading,
   publicChatFileToastHeading,
@@ -30,6 +30,7 @@ import {
   multiplePublicAndPrivateChatToastSubHeading,
   multiplePublicChatToastSubHeading,
 } from '../../language/default-labels/videoCallScreenLabels';
+import alertSound from '../../assets/alertMessages.mp3'
 
 interface ChatMessagesProviderProps {
   children: React.ReactNode;
@@ -155,7 +156,7 @@ export interface messageStoreInterface extends messageInterface {
 
 interface ChatMessagesInterface {
   messageStore: messageStoreInterface[];
-  privateMessageStore: {[key: string]: messageStoreInterface[]};
+  privateMessageStore: { [key: string]: messageStoreInterface[] };
   addMessageToPrivateStore: (
     uid: UidType,
     body: messageInterface,
@@ -185,31 +186,32 @@ interface ChatMessagesInterface {
 const ChatMessagesContext = React.createContext<ChatMessagesInterface>({
   messageStore: [],
   privateMessageStore: {},
-  addMessageToStore: () => {},
-  addMessageToPrivateStore: () => {},
-  showMessageNotification: () => {},
-  openPrivateChat: () => {},
-  removeMessageFromStore: () => {},
-  removeMessageFromPrivateStore: () => {},
-  addReactionToStore: () => {},
-  addReactionToPrivateStore: () => {},
+  addMessageToStore: () => { },
+  addMessageToPrivateStore: () => { },
+  showMessageNotification: () => { },
+  openPrivateChat: () => { },
+  removeMessageFromStore: () => { },
+  removeMessageFromPrivateStore: () => { },
+  addReactionToStore: () => { },
+  addReactionToPrivateStore: () => { },
 });
 
 const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
   const isToastVisibleRef = useRef(false);
   const previousNotificationRef = useRef([]);
   const timeoutRef = useRef<any>();
-  const {callActive} = props;
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const { callActive } = props;
   const {
-    data: {isHost},
+    data: { isHost },
   } = useRoomInfo();
-  const {dispatch} = useContext(DispatchContext);
-  const {defaultContent, isUserBaned} = useContent();
+  const { dispatch } = useContext(DispatchContext);
+  const { defaultContent, isUserBaned } = useContent();
   const localUid = useLocalUid();
-  const {setSidePanel, sidePanel} = useSidePanel();
-  const {chatType, setChatType, privateChatUser, setPrivateChatUser} =
+  const { setSidePanel, sidePanel } = useSidePanel();
+  const { chatType, setChatType, privateChatUser, setPrivateChatUser } =
     useChatUIControls();
-  const {setUnreadGroupMessageCount, setUnreadIndividualMessageCount} =
+  const { setUnreadGroupMessageCount, setUnreadIndividualMessageCount } =
     useChatNotification();
   // to store group msgs
   const [messageStore, setMessageStore] = useState<messageStoreInterface[]>([]);
@@ -218,11 +220,11 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     [key: string]: messageStoreInterface[];
   }>({});
 
-  const defaultContentRef = useRef({defaultContent: defaultContent});
-  const isUserBanedRef = useRef({isUserBaned: isUserBaned});
+  const defaultContentRef = useRef({ defaultContent: defaultContent });
+  const isUserBanedRef = useRef({ isUserBaned: isUserBaned });
 
-  const isHostRef = useRef({isHost: isHost});
-  const callActiveRef = useRef({callActive: callActive});
+  const isHostRef = useRef({ isHost: isHost });
+  const callActiveRef = useRef({ callActive: callActive });
 
   const groupActiveRef = useRef<boolean>(false);
   const individualActiveRef = useRef<string | number>();
@@ -244,7 +246,7 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
 
   //private multiple
   //@ts-ignore
-  const multiplePrivateChatToastHeadingTT = useStringRef<{count: number}>(
+  const multiplePrivateChatToastHeadingTT = useStringRef<{ count: number }>(
     multiplePrivateChatToastHeading,
   );
 
@@ -309,6 +311,18 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     individualActiveRef.current = privateChatUser;
   }, [privateChatUser]);
 
+  useEffect(() => {
+    if (isWebInternal()) {
+      notificationAudioRef.current = new Audio(alertSound);
+    }
+
+    return () => {
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current = null;
+      }
+    };
+  }, []);
+
   const allEqual = arr => arr.every(val => val === arr[0]);
   const openPrivateChat = (uidAsNumber: number) => {
     setPrivateChatUser(uidAsNumber);
@@ -322,7 +336,7 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     uid: number,
     data: Partial<ContentInterface>,
   ) => {
-    dispatch({type: 'UpdateRenderList', value: [uid, data]});
+    dispatch({ type: 'UpdateRenderList', value: [uid, data] });
   };
 
   const addMessageToStore = (uid: UidType, body: messageInterface) => {
@@ -353,10 +367,28 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     local: boolean,
   ) => {
     setPrivateMessageStore(state => {
-      let newState = {...state};
+      let newState = { ...state };
       newState[uid] !== undefined
         ? (newState[uid] = [
-            ...newState[uid],
+          ...newState[uid],
+          {
+            createdTimestamp: body.createdTimestamp,
+            uid: local ? localUid : uid,
+            msg: body.msg,
+            msgId: body.msgId,
+            isDeleted: body.isDeleted,
+            type: body.type,
+            thumb: body?.thumb,
+            url: body?.url,
+            ext: body?.ext,
+            fileName: body?.fileName,
+            replyToMsgId: body?.replyToMsgId,
+            hide: false,
+          },
+        ])
+        : (newState = {
+          ...newState,
+          [uid]: [
             {
               createdTimestamp: body.createdTimestamp,
               uid: local ? localUid : uid,
@@ -364,34 +396,16 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
               msgId: body.msgId,
               isDeleted: body.isDeleted,
               type: body.type,
-              thumb: body?.thumb,
-              url: body?.url,
+              thumb: body.thumb,
+              url: body.url,
               ext: body?.ext,
               fileName: body?.fileName,
               replyToMsgId: body?.replyToMsgId,
               hide: false,
             },
-          ])
-        : (newState = {
-            ...newState,
-            [uid]: [
-              {
-                createdTimestamp: body.createdTimestamp,
-                uid: local ? localUid : uid,
-                msg: body.msg,
-                msgId: body.msgId,
-                isDeleted: body.isDeleted,
-                type: body.type,
-                thumb: body.thumb,
-                url: body.url,
-                ext: body?.ext,
-                fileName: body?.fileName,
-                replyToMsgId: body?.replyToMsgId,
-                hide: false,
-              },
-            ],
-          });
-      return {...newState};
+          ],
+        });
+      return { ...newState };
     });
   };
 
@@ -409,7 +423,7 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
 
   const removeMessageFromPrivateStore = (msgID, isMsgRecalled) => {
     setPrivateMessageStore(state => {
-      const newState = {...state};
+      const newState = { ...state };
 
       Object.keys(newState).forEach(uid => {
         const messages = newState[uid];
@@ -469,7 +483,7 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     newReactions: Reaction[],
   ) => {
     setPrivateMessageStore(prev => {
-      const newState = {...prev};
+      const newState = { ...prev };
       const messages = newState[uid];
 
       if (messages) {
@@ -556,12 +570,12 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
       fromUid: isPrivateMessage ? uidAsNumber : 0,
       from:
         !isPrivateMessage &&
-        //@ts-ignore
-        defaultContentRef.current.defaultContent[uidAsNumber]?.name
+          //@ts-ignore
+          defaultContentRef.current.defaultContent[uidAsNumber]?.name
           ? trimText(
-              //@ts-ignore
-              defaultContentRef.current.defaultContent[uidAsNumber]?.name,
-            )
+            //@ts-ignore
+            defaultContentRef.current.defaultContent[uidAsNumber]?.name,
+          )
           : '',
     });
 
@@ -584,16 +598,21 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
       const fromNamesArrayUpdated =
         fromNamesArrayUnique.length > 2
           ? fromNamesArrayUnique
-              .slice(0, 2)
-              .map((i, index) => (index === 0 ? i + ', ' : i))
-              .concat(privateMessages?.length ? ', more' : ' and more')
+            .slice(0, 2)
+            .map((i, index) => (index === 0 ? i + ', ' : i))
+            .concat(privateMessages?.length ? ', more' : ' and more')
           : fromNamesArrayUnique.length == 2
-          ? fromNamesArrayUnique.map((i, index) =>
+            ? fromNamesArrayUnique.map((i, index) =>
               index === 0 ? i + ' and ' : i,
             )
-          : fromNamesArrayUnique;
+            : fromNamesArrayUnique;
       //converting the names array to string
       const fromNames = fromNamesArrayUpdated.join('');
+      if (isWebInternal() && notificationAudioRef.current) {
+        notificationAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
+      }
       Toast.show({
         //@ts-ignore
         update: isToastVisibleRef.current ? true : false,
@@ -608,16 +627,16 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
         text2:
           privateMessages && privateMessages.length
             ? //@ts-ignore
-              multiplePublicAndPrivateChatToastSubHeadingTT?.current({
-                publicChatCount: publicMessages.length,
-                privateChatCount: privateMessages.length,
-                from: fromNames,
-              })
+            multiplePublicAndPrivateChatToastSubHeadingTT?.current({
+              publicChatCount: publicMessages.length,
+              privateChatCount: privateMessages.length,
+              from: fromNames,
+            })
             : //@ts-ignore
-              multiplePublicChatToastSubHeadingTT?.current({
-                count: publicMessages.length,
-                from: fromNames,
-              }),
+            multiplePublicChatToastSubHeadingTT?.current({
+              count: publicMessages.length,
+              from: fromNames,
+            }),
         visibilityTime: 3000,
         onPress: () => {
           if (isPrivateMessage) {
@@ -634,6 +653,11 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     }
     //if one or more private message and no public messages
     else if (privateMessages && privateMessages.length > 1) {
+      if (isWebInternal() && notificationAudioRef.current) {
+        notificationAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
+      }
       Toast.show({
         //@ts-ignore
         update: isToastVisibleRef.current ? true : false,
@@ -667,6 +691,11 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
     }
     //either 1 public or 1 private message
     else {
+      if (isWebInternal() && notificationAudioRef.current) {
+        notificationAudioRef.current.play().catch(err => {
+          console.log('Error playing notification sound:', err);
+        });
+      }
       Toast.show({
         //@ts-ignore
         update: isToastVisibleRef.current ? true : false,
@@ -678,19 +707,19 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
           ? privateMessageLabel?.current()
           : //@ts-ignore
           defaultContentRef.current.defaultContent[uidAsNumber]?.name
-          ? fromText(
+            ? fromText(
               trimText(
                 //@ts-ignore
                 defaultContentRef.current.defaultContent[uidAsNumber]?.name,
               ),
               msgType,
             )
-          : '',
+            : '',
         text2: isPrivateMessage
           ? ''
           : msg.length > 30
-          ? msg.slice(0, 30) + '...'
-          : msg,
+            ? msg.slice(0, 30) + '...'
+            : msg,
         visibilityTime: 3000,
         onPress: () => {
           if (isPrivateMessage) {
@@ -726,4 +755,4 @@ const ChatMessagesProvider = (props: ChatMessagesProviderProps) => {
 
 const useChatMessages = createHook(ChatMessagesContext);
 
-export {ChatMessagesProvider, useChatMessages};
+export { ChatMessagesProvider, useChatMessages };

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Route, Redirect } from '../components/Router';
 import Toast from '../../react-native-toast-message';
 import type { RouteProps } from 'react-router';
-import { auth } from '../firebase'; // ⬅️ Firebase instance
+import { auth } from '../firebase';
 import isSDK from '../utils/isSDK';
 import Loading from '../subComponents/Loading';
 import { useString } from '../utils/useString';
@@ -16,7 +16,7 @@ interface PrivateRouteProps extends RouteProps {
   children: React.ReactNode;
 }
 
-const AuthRoute: React.FC<PrivateRouteProps> = props => {
+const AuthRoute: React.FC<PrivateRouteProps> = ({ children, ...rest }) => {
   const didMountRef = useRef(false);
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
   const loadingLabel = useString(loadingText)();
@@ -38,20 +38,32 @@ const AuthRoute: React.FC<PrivateRouteProps> = props => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [logout]);
 
   if (isSDK()) {
-    return <Route {...props} />;
+    return <Route {...rest}>{children}</Route>;
   }
 
   if (isSignedIn === null) {
     return <Loading text={loadingLabel} />;
   }
 
-  return isSignedIn ? (
-    <Route {...props} />
-  ) : (
-    <Redirect to="/auth" />
+  return (
+    <Route
+      {...rest}
+      render={({ location }) =>
+        isSignedIn ? (
+          children
+        ) : (
+          <Redirect
+            to={{
+              pathname: '/auth',
+              state: { from: location.pathname }
+            }}
+          />
+        )
+      }
+    />
   );
 };
 

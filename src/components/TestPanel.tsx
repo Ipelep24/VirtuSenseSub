@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SidePanelType } from '../subComponents/SidePanelEnum';
 import { isMobileUA, isWebInternal, useIsSmall } from '../utils/common';
@@ -16,6 +16,17 @@ const TestPanel = (props) => {
   const { transcriptHeight } = useCaptionWidth();
   
   const snapshots = useEmotionSnapshots();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to bottom whenever snapshots change
+  useEffect(() => {
+    if (scrollViewRef.current && snapshots.length > 0) {
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [snapshots.length]); // Trigger when new snapshots are added
 
   const getEngagementColor = (engagement: string) => {
     switch (engagement) {
@@ -41,7 +52,14 @@ const TestPanel = (props) => {
       ]}>
       {showHeader && <TestPanelHeader />}
 
-      <ScrollView style={style.bodyContainer}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={style.bodyContainer}
+        onContentSizeChange={() => {
+          // Also scroll to bottom when content size changes
+          scrollViewRef.current?.scrollToEnd({ animated: false });
+        }}
+      >
         {snapshots.length === 0 ? (
           <View style={style.centerContent}>
             <Text style={style.emptyText}>Nothing to show yet.</Text>

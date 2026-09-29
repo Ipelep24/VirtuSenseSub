@@ -77,3 +77,5 @@ template/customization/*
 # testing
 /coverage
 .vercel
+config.json
+config *
